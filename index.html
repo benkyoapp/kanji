@@ -314,6 +314,26 @@ td input{width:70px;margin:0;padding:6px 8px}
 .ccard li{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;line-height:1.45}
 .ccard li b{color:var(--go);white-space:nowrap}
 .cq{font-size:11px;color:var(--muted);margin-top:8px}
+
+.rpanel{border-color:var(--ng);background:linear-gradient(180deg,#3a1f33,#1f2446);margin-bottom:24px}
+.rvrow{display:flex;flex-wrap:wrap;gap:10px}
+.rvb{flex:1 1 90px;background:var(--deep);border:2px solid rgba(255,107,91,.55);border-radius:14px;padding:10px 12px;text-align:center;box-shadow:0 5px 0 #2a0d12}
+.rvb:active{transform:translateY(3px);box-shadow:0 2px 0 #2a0d12}
+.rvb b{display:block;font-family:var(--display);font-weight:400;font-size:28px;color:var(--ng);line-height:1.2}
+.rvb span{font-size:13px;font-weight:800}
+.rvb.all{border-color:var(--go)} .rvb.all b{color:var(--go)}
+.rlh{font-size:15px;margin:14px 0 6px}
+
+.calcwrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
+.calcwrap .numrow{margin-top:0}
+.calcwrap .numdisp{min-width:0;flex:1}
+.scr{background:var(--paper);border-radius:14px;border:3px solid var(--edge);overflow:hidden}
+.scr-h{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#eef1f6;color:#34425a;font-size:12px;font-weight:800}
+.scr-h span{margin-right:auto}
+.scr-b{border:1px solid #c5ccd8;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:800;color:#34425a;background:#fff}
+.scr-p{position:relative;height:min(52dvh,440px);background-image:linear-gradient(#e4e8ef 1px,transparent 1px),linear-gradient(90deg,#e4e8ef 1px,transparent 1px);background-size:24px 24px}
+.scr-p canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;-webkit-touch-callout:none;cursor:crosshair}
+@media (max-width:760px){ .calcwrap{grid-template-columns:1fr} .scr-p{height:240px} }
 @keyframes fade{from{opacity:0}}
 @keyframes cardin{from{transform:scale(.4) rotateY(100deg);opacity:0}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -514,7 +534,7 @@ function cardHTML(ch,r,from,act){
 /* ---------- lobby ---------- */
 var PLAN=[{o:-6,m:'study',t:'作戦会議'},{o:-4,m:'battle',t:'バトル'},{o:-3,m:'battle',t:'バトル'},{o:-2,m:'battle',t:'バトル'},{o:-1,m:'storm',t:'ファイナル'},{o:0,m:'real',t:'本番'}];
 function lobbyHTML(){
-  var wk=currentWeek(), h=mPanelHTML();
+  var wk=currentWeek(), h=reviewPanelHTML()+mPanelHTML();
   if(wk){
     var P=weekPool(wk), t=today(), left=diffDays(t,wk.date), rest=P.words.filter(function(o){ return !isClear(wk.rec,o.w); }).length;
     var todayMode=null;
@@ -1494,6 +1514,78 @@ function courseResultHTML(){
     '<div class="rstats"><div><b>'+S.ok+'</b><span>○ 正解</span></div><div><b>'+S.ng+'</b><span>× まちがい</span></div><div><b>+'+S.xp+'</b><span>XP</span></div></div>'+miss+
     '<div class="mrow"><button class="btn go big" data-act="lobby">ロビーへ</button></div></div>';
 }
+/* ---------- まちがい直し ---------- */
+function qText(it){ return it.t==='kw' ? it.r+'（'+it.c.replace('{}','＿')+'）' : it.q; }
+function missesOf(z){
+  var rec=mrecRO(z); return zoneBank(z).filter(function(i){ return rec.st[i.id]==='miss'; });
+}
+function missCounts(){ var o={},t=0; MZ.forEach(function(z){ o[z.k]=missesOf(z.k).length; t+=o[z.k]; }); o.all=t; return o; }
+function reviewPanelHTML(){
+  var c=missCounts();
+  if(!c.all) return '';
+  var btns=MZ.filter(function(z){ return c[z.k]; }).map(function(z){
+    return '<button class="rvb" data-act="rplay" data-z="'+z.k+'"><b>'+c[z.k]+'</b><span>'+z.n+'</span></button>';
+  }).join('');
+  return '<section class="panel rpanel"><div class="season-top" style="margin-bottom:10px"><div><span class="plate rv"><span>まちがい直し</span></span>'+
+    '<h1 style="font-size:26px">×が <b style="color:var(--ng)">'+c.all+'</b> 問のこっています</h1></div>'+
+    '<div class="when">正解すると、その問題は消えるよ</div></div>'+
+    '<div class="rvrow">'+btns+'<button class="rvb all" data-act="rplay" data-z="*"><b>'+c.all+'</b><span>ぜんぶ</span></button></div>'+
+    '<p style="margin:12px 0 0"><button class="btn ghost" data-act="rlist">×の問題と答えを一覧で見る</button></p></section>';
+}
+function startReview(z){
+  var zs = z==='*' ? MZ.map(function(x){ return x.k; }) : [z];
+  var list=[];
+  zs.forEach(function(k){ missesOf(k).forEach(function(i){ var m=materialize(i); m.zone=k; m.stage='まちがい直し・'+zoneName(k); list.push(m); }); });
+  if(!list.length){ toast('×の問題はありません'); return; }
+  list=shuffle(list).slice(0,20);
+  S={kind:'m',review:z,zone:list[0].zone,pool:{id:'review'},mode:'m-review',list:list,i:0,ok:0,ng:0,missed:[],xp:0,drops:[]};
+  mSetPhase(); commit(); window.scrollTo(0,0); renderM();
+}
+function reviewListModal(){
+  var rows=MZ.map(function(z){
+    var ms=missesOf(z.k); if(!ms.length) return '';
+    var lq=(mrecRO(z.k).lq)||{};
+    return '<h3 class="rlh">'+z.n+'（'+ms.length+'）</h3><div class="mmiss">'+ms.map(function(i){
+      var last=lq[i.id]; var q=last?last[0]:(i.t==='kw'?i.r+'（'+i.c.replace('{}','＿')+'）':(i.q||i.src)); var a=last?last[1]:(i.a!=null?i.a:'');
+      return '<div><span>'+esc(q)+'</span><b>'+esc(String(a))+'</b></div>';
+    }).join('')+'</div>';
+  }).join('');
+  var m=modal('<p class="mq">×の問題と答え</p><div style="text-align:left">'+rows+'</div><p style="margin-top:16px"><button class="btn go" data-v="1">とじる</button></p>');
+  m.addEventListener('click',function(e){ if(e.target.closest('[data-v]')||e.target===m) m.remove(); });
+}
+function reviewResultHTML(){
+  var left=missCounts().all, perfect=S.ng===0;
+  return '<div class="result '+(perfect?'win':'')+'"><span class="plate rv"><span>まちがい直し</span></span>'+
+    '<h1>'+(left?'のこり '+left+' 問':'×ぜんぶクリア！')+'</h1><p class="rsub">'+(left?'まだ×が残っているよ。もう1回で減らそう。':'まちがえた問題を、ぜんぶ取り返した！')+'</p>'+
+    '<div class="rstats"><div><b>'+S.ok+'</b><span>取り返した</span></div><div><b>'+S.ng+'</b><span>まだ×</span></div><div><b>+'+S.xp+'</b><span>XP</span></div></div>'+
+    (S.missed.length?'<p class="ans-l">まだ×の問題</p><div class="mmiss">'+S.missed.map(function(it){ return '<div><span>'+esc(qText(it))+'</span><b>'+esc(fmtAns(it))+'</b></div>'; }).join('')+'</div>':'')+
+    '<div class="mrow">'+(left?'<button class="btn storm" data-act="rplay" data-z="'+esc(S.review)+'">もう1回</button>':'')+'<button class="btn go big" data-act="lobby">ロビーへ</button></div></div>';
+}
+
+/* ---------- 計算用紙 ---------- */
+function Scratch(host,strokes){
+  host.innerHTML='<div class="scr"><div class="scr-h"><span>計算用紙</span><button class="scr-b" data-scr="undo">1つもどす</button><button class="scr-b" data-scr="clear">ぜんぶけす</button></div><div class="scr-p"><canvas aria-label="計算用紙"></canvas></div></div>';
+  var box=host.querySelector('.scr-p'), cv=box.querySelector('canvas'), ctx=cv.getContext('2d'), W=1,H=1,cur=null,pid=null;
+  function fit(){ var r=box.getBoundingClientRect(), d=Math.min(3,window.devicePixelRatio||1); W=Math.max(1,r.width); H=Math.max(1,r.height);
+    cv.width=Math.round(W*d); cv.height=Math.round(H*d); ctx.setTransform(d,0,0,d,0,0); redraw(); }
+  function line(s){ var p=s.p; ctx.strokeStyle='#1a1a1a'; ctx.fillStyle='#1a1a1a'; ctx.lineCap='round'; ctx.lineJoin='round';
+    if(p.length===1){ ctx.beginPath(); ctx.arc(p[0].x,p[0].y,p[0].w/2,0,7); ctx.fill(); return; }
+    for(var i=1;i<p.length;i++){ ctx.beginPath(); ctx.lineWidth=p[i].w; ctx.moveTo(p[i-1].x,p[i-1].y); ctx.lineTo(p[i].x,p[i].y); ctx.stroke(); } }
+  function redraw(){ ctx.clearRect(0,0,W,H); strokes.forEach(line); if(cur) line(cur); }
+  function pt(e){ var r=cv.getBoundingClientRect(), f=e.pointerType==='pen'?(e.pressure||.5):.5; return {x:e.clientX-r.left,y:e.clientY-r.top,w:1.4+2.6*f}; }
+  cv.addEventListener('pointerdown',function(e){ if(e.pointerType==='pen') penSeen=true; if(e.pointerType==='touch'&&penSeen) return; if(cur) return;
+    e.preventDefault(); pid=e.pointerId; try{ cv.setPointerCapture(pid); }catch(_){} cur={p:[pt(e)]}; redraw(); });
+  cv.addEventListener('pointermove',function(e){ if(!cur||e.pointerId!==pid) return; e.preventDefault();
+    var ev=e.getCoalescedEvents?e.getCoalescedEvents():[]; if(!ev.length) ev=[e]; ev.forEach(function(x){ cur.p.push(pt(x)); }); redraw(); });
+  function end(e){ if(!cur||e.pointerId!==pid) return; strokes.push(cur); cur=null; pid=null; redraw(); }
+  cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
+  cv.addEventListener('touchstart',function(e){ e.preventDefault(); },{passive:false});
+  host.querySelector('.scr-h').addEventListener('click',function(e){ var b=e.target.closest('[data-scr]'); if(!b) return;
+    if(b.dataset.scr==='undo') strokes.pop(); else strokes.length=0; redraw(); });
+  if(window.ResizeObserver) new ResizeObserver(fit).observe(box); fit();
+}
+function needScratch(it){ return it.t==='n' || (it.zone||S.zone)==='math'; }
+
 /* M session */
 function startM(z){
   var list=buildRun(z); if(!list.length){ toast('問題がありません'); return; }
@@ -1501,7 +1593,7 @@ function startM(z){
   S={kind:'m',zone:z,pool:{id:'mtest'},mode:'m-'+z,list:list,i:0,ok:0,ng:0,missed:[],xp:0,drops:[]};
   mSetPhase(); commit(); window.scrollTo(0,0); renderM();
 }
-function mSetPhase(){ var it=S.list[S.i]; S.phase=it.t==='c'?'choose':it.t==='n'?'input':'write'; S.input=''; S.picked=null; S.overlay=false; S.drill=0; }
+function mSetPhase(){ var it=S.list[S.i]; S.scratch=[]; S.phase=it.t==='c'?'choose':it.t==='n'?'input':'write'; S.input=''; S.picked=null; S.overlay=false; S.drill=0; }
 function zoneName(z){ return MZ.find(function(x){ return x.k===z; }).n; }
 function renderM(){
   document.body.classList.add('in-session');
@@ -1522,16 +1614,17 @@ function renderM(){
   }
   if(it.t==='c'){
     var shown=S.phase==='shown';
-    body='<div class="prompt">'+prompt+'</div><div class="choices">'+it.ch.map(function(c,i){
+    var chs='<div class="choices">'+it.ch.map(function(c,i){
       var cls=''; if(shown){ if(c===it.a) cls='right'; else if(i===S.picked) cls='wrong'; }
       return '<button class="choice '+cls+'" data-act="mpick" data-i="'+i+'" '+(shown?'disabled':'')+'>'+esc(c)+'</button>';
     }).join('')+'</div>';
+    body='<div class="prompt">'+prompt+'</div>'+(needScratch(it)?'<div class="calcwrap"><div id="scrHost"></div><div>'+chs+'</div></div>':chs);
   } else {
     var shownN=S.phase==='shown';
-    body='<div class="prompt">'+prompt+'</div>'+
+    body='<div class="prompt">'+prompt+'</div><div class="calcwrap"><div id="scrHost"></div><div>'+
       '<div class="numrow"><div class="numdisp '+(shownN?(S.lastOk?'right':'wrong'):'')+'">'+(esc(S.input)||'<span style="opacity:.35">?</span>')+'</div><div class="numu">'+esc(it.u||'')+'</div></div>'+
       (shownN?'':'<div class="keypad">'+['7','8','9','4','5','6','1','2','3','0','.','⌫'].map(function(k){ return '<button class="key" data-act="key" data-k="'+k+'">'+k+'</button>'; }).join('')+'</div>'+
-      '<div class="ctrl"><button class="btn go wide" data-act="msubmit" '+(S.input?'':'disabled')+'>こたえる</button></div>');
+      '<div class="ctrl"><button class="btn go wide" data-act="msubmit" '+(S.input?'':'disabled')+'>こたえる</button></div>')+'</div></div>';
   }
   if(S.phase==='shown'){
     var ok=S.lastOk;
@@ -1539,6 +1632,7 @@ function renderM(){
       '<div class="ctrl"><button class="btn go wide big" data-act="mnext">つぎへ</button></div>';
   }
   v.innerHTML=head+body+'</div>';
+  var sh=document.getElementById('scrHost'); if(sh) Scratch(sh,S.scratch);
 }
 function fmtAns(it){ return it.t==='n' ? fmtN(it.a)+(it.u||'') : it.a; }
 function mWriteUI(){
@@ -1556,6 +1650,7 @@ function mWriteUI(){
 function mRefresh(){ var b=document.querySelector('[data-need]'); if(b) b.disabled=S.pad.empty(); }
 function mScore(ok){
   var it=S.list[S.i], rec=mrec(it.zone||S.zone);
+  if(!rec.lq) rec.lq={}; rec.lq[it.id]=[qText(it), fmtAns(it)];
   if(ok){ S.ok++; gain(10); rec.st[it.id]='clear'; sfx('ok'); }
   else { S.ng++; S.missed.push(it); if(rec.st[it.id]!=='clear') rec.st[it.id]='miss'; else rec.st[it.id]='miss'; sfx('ng'); }
   commit();
@@ -1566,6 +1661,7 @@ function mNext(){
   mSetPhase(); renderM(); window.scrollTo(0,0);
 }
 function mResultHTML(){
+  if(S.review) return reviewResultHTML();
   if(S.course) return courseResultHTML();
   var s=mZoneStat(S.zone), perfect=S.ng===0;
   var miss=S.missed.length?'<p class="ans-l">まちがえた問題（つぎの出撃でまた出るよ）</p><div class="mmiss">'+S.missed.map(function(it){
@@ -1615,6 +1711,8 @@ document.addEventListener('click',function(e){
       if(!y) return; if(S.ok+S.ng>0 || S.mode==='study' && S.i>0){ logSession(); commit(); } endSession();
     });
   }
+  else if(a==='rplay'){ if(S && S.phase==='done') S=null; if(!S) startReview(b.dataset.z); }
+  else if(a==='rlist'){ reviewListModal(); }
   else if(a==='cplay'){ if(S && S.phase==='done') S=null; if(!S) startCourse(parseInt(b.dataset.n,10)); }
   else if(a==='mplay'){ if(S && S.phase==='done') S=null; if(!S) startM(b.dataset.z); }
   else if(!S) return;
