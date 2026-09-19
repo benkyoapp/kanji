@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>カンジ・ロワイヤル</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="カンジ">
+<meta name="theme-color" content="#0c1c36">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&family=Klee+One:wght@600&display=swap">
+<style>
+:root{
+  --bg:#0c1c36; --panel:#16305a; --panel2:#1c3b6b; --edge:#28528d; --deep:#081429;
+  --text:#f2f6ff; --muted:#a3b6da; --dim:#6f86b0;
+  --go:#ffd23f; --go-edge:#b88a00; --go-ink:#211800;
+  --ok:#33d18a; --ok-edge:#179158; --ng:#ff6b5b; --ng-edge:#bf3a2c;
+  --storm:#8b5cff; --storm-deep:#3a1d8a;
+  --paper:#fffdf4; --grid:#e39a9a; --grid2:#f2c9c9; --ink:#1a1a1a;
+  --legend:#ffb52e; --epic:#b86cff; --rare:#3ea3ff; --unc:#4fd66a; --com:#9fabbd;
+  --display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --ui:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;
+  --kyokasho:"Klee One","YuKyokasho","Hiragino Mincho ProN",serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0;min-height:100dvh;color:var(--text);font-family:var(--ui);font-weight:500;font-size:16px;line-height:1.6;
+  background:
+    radial-gradient(1100px 520px at 85% -12%,rgba(46,120,190,.55),transparent 62%),
+    radial-gradient(900px 480px at -12% 112%,rgba(20,110,120,.45),transparent 60%),
+    var(--bg);
+  background-attachment:fixed;touch-action:manipulation;-webkit-user-select:none;user-select:none;padding-inline:16px}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--go);outline-offset:3px}
+.app{max-width:1000px;margin:0 auto;padding-block:14px 110px}
+
+/* HUD */
+.hud{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:6px 14px}
+.brand{font-family:var(--display);font-size:20px;letter-spacing:.02em;margin-right:auto;display:flex;align-items:center;gap:8px}
+.brand i{display:inline-block;width:26px;height:26px;border-radius:6px;background:var(--go);color:var(--go-ink);font-style:normal;
+  display:grid;place-items:center;font-size:15px;transform:skew(-8deg)}
+.lv{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:14px}
+.xpbar{width:120px;height:10px;border-radius:6px;background:var(--deep);overflow:hidden;border:1px solid var(--edge)}
+.xpbar i{display:block;height:100%;background:linear-gradient(90deg,#39c2ff,#7ef0c6)}
+.streak{font-size:13px;color:var(--muted)} .streak b{font-family:var(--display);color:var(--go);font-size:17px;font-weight:400}
+.sync{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:5px}
+.sync::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.sync.on::before{background:var(--ok)}
+.mute{font-size:12px;color:var(--muted);border:1px solid var(--edge);border-radius:20px;padding:3px 10px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;padding:12px 20px;font-weight:800;
+  background:var(--panel2);box-shadow:0 5px 0 var(--deep);transition:transform .06s,box-shadow .06s;min-height:52px;font-size:16px}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--deep)}
+.btn[disabled]{opacity:.38;pointer-events:none}
+.btn.go{background:var(--go);color:var(--go-ink);box-shadow:0 5px 0 var(--go-edge)}
+.btn.go:active{box-shadow:0 2px 0 var(--go-edge)}
+.btn.ok{background:var(--ok);color:#03281a;box-shadow:0 5px 0 var(--ok-edge)}
+.btn.ng{background:var(--ng);color:#2e0600;box-shadow:0 5px 0 var(--ng-edge)}
+.btn.storm{background:var(--storm);color:#fff;box-shadow:0 5px 0 var(--storm-deep)}
+.btn.ghost{background:transparent;border:2px solid var(--edge);box-shadow:none}
+.btn.big{font-size:20px;min-height:64px;padding:14px 28px;font-family:var(--display);font-weight:400;letter-spacing:.04em}
+.plate{display:inline-block;transform:skew(-9deg);background:var(--go);color:var(--go-ink);padding:2px 12px;border-radius:4px}
+.plate>span{display:inline-block;transform:skew(9deg);font-weight:800;font-size:12px;letter-spacing:.08em}
+.plate.st{background:var(--storm);color:#fff}
+.plate.rv{background:var(--ng);color:#2e0600}
+
+/* panels */
+.panel{background:linear-gradient(180deg,var(--panel2),var(--panel));border:2px solid var(--edge);border-radius:22px;padding:22px;
+  box-shadow:0 8px 0 var(--deep)}
+.sec{margin-top:30px}
+.sec-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.sec-h h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0}
+.sec-h p{margin:0;color:var(--muted);font-size:13px}
+
+/* season */
+.season-top{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 20px;margin-bottom:16px}
+.season-top h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,5vw,40px);margin:6px 0 0;line-height:1.15}
+.season-top .when{color:var(--muted);font-size:14px}
+.season-top .when b{color:var(--go);font-family:var(--display);font-weight:400;font-size:20px}
+.days{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:4px 0 18px}
+.day{background:var(--deep);border-radius:12px;padding:8px 4px 9px;text-align:center;border:2px solid transparent;position:relative}
+.day .dd{font-size:11px;color:var(--dim)}
+.day .dm{font-weight:800;font-size:13px;line-height:1.3}
+.day.today{border-color:var(--go)}
+.day.today::after{content:"きょう";position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--go);color:var(--go-ink);
+  font-size:10px;font-weight:800;padding:0 7px;border-radius:8px}
+.day.done{background:rgba(51,209,138,.16)} .day.done .dm::after{content:" ✓";color:var(--ok)}
+.day.real{background:rgba(255,107,91,.14)}
+.bosses{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px;margin-bottom:20px}
+.boss{background:var(--deep);border-radius:14px;padding:10px 6px 10px;text-align:center;border:2px solid var(--edge)}
+.boss .bk{font-family:var(--display);font-size:38px;line-height:1.15;color:var(--dim)}
+.boss.def{border-color:var(--rc);background:linear-gradient(180deg,color-mix(in srgb,var(--rc) 30%,var(--deep)),var(--deep))}
+.boss.def .bk{font-family:var(--kyokasho);font-weight:600;color:#fff}
+.hp{display:flex;justify-content:center;gap:3px;margin-top:4px;min-height:9px}
+.hp i{width:12px;height:7px;border-radius:2px;background:var(--ng)}
+.hp i.x{background:#2a3d5e}
+.boss .rn{font-size:10px;font-weight:800;color:var(--rc);margin-top:3px}
+.acts{display:flex;flex-wrap:wrap;gap:12px}
+.acts .btn{flex:1 1 200px}
+.empty{text-align:center;padding:30px 16px}
+.empty h1{font-family:var(--display);font-weight:400;font-size:26px;margin:10px 0 6px}
+.empty p{color:var(--muted);margin:0 auto 18px;max-width:40ch;font-size:14px}
+
+/* islands */
+.islands{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.isl{background:linear-gradient(170deg,#1b4b62,#143455);border:2px solid #2a6a86;border-radius:18px;padding:14px 14px 12px;text-align:left;
+  box-shadow:0 5px 0 var(--deep);position:relative;overflow:hidden}
+.isl:active{transform:translateY(3px);box-shadow:0 2px 0 var(--deep)}
+.isl .in{font-family:var(--display);font-size:18px;line-height:1.2}
+.isl .id{font-size:11px;color:var(--muted)}
+.isl .ik{font-family:var(--kyokasho);font-weight:600;font-size:15px;letter-spacing:.12em;margin:6px 0 8px;color:#cfe6f5;min-height:24px}
+.ibar{height:8px;border-radius:5px;background:var(--deep);overflow:hidden}
+.ibar i{display:block;height:100%;background:var(--ok)}
+.isl .ic{font-size:11px;color:var(--muted);margin-top:5px}
+.isl.clear{border-color:var(--legend)}
+.isl.clear::after{content:"制覇";position:absolute;top:10px;right:-24px;transform:rotate(35deg);background:var(--legend);color:#2a1a00;
+  font-size:11px;font-weight:800;padding:1px 28px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:30px}
+.stat{background:var(--deep);border-radius:14px;padding:12px 16px}
+.stat b{font-family:var(--display);font-weight:400;font-size:26px;display:block;line-height:1.2}
+.stat span{font-size:12px;color:var(--muted)}
+
+/* tabs */
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(8,20,41,0),rgba(8,20,41,.96) 30%);z-index:5}
+.tab{flex:0 1 180px;border-radius:14px;padding:10px 8px;font-weight:800;font-size:14px;background:var(--panel);border:2px solid var(--edge);position:relative;overflow:hidden}
+.tab.on{background:var(--go);color:var(--go-ink);border-color:var(--go)}
+.tab .hold{position:absolute;left:0;bottom:0;height:4px;width:0;background:var(--go)}
+.tab.holding .hold{width:100%;transition:width .9s linear}
+body.in-session .tabs,body.in-session .hud{display:none}
+
+/* session */
+.sess{max-width:900px;margin:0 auto}
+.sbar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.quit{width:44px;height:44px;border-radius:12px;background:var(--panel);border:2px solid var(--edge);font-size:20px;font-weight:800;flex:none}
+.prog{font-family:var(--display);font-size:15px;color:var(--muted);white-space:nowrap}
+.pbar{flex:1;height:12px;border-radius:7px;background:var(--deep);overflow:hidden;border:1px solid var(--edge)}
+.pbar i{display:block;height:100%;background:var(--go);transition:width .3s}
+.sess.storm .pbar i{background:var(--storm)}
+.arena{display:flex;align-items:center;gap:16px;margin-bottom:12px;flex-wrap:wrap}
+.foe{display:flex;gap:8px;flex-wrap:wrap}
+.foe .boss{min-width:84px;padding:6px 8px}
+.foe .boss .bk{font-size:32px}
+.foe-l{font-size:12px;color:var(--muted);line-height:1.5}
+.foe-l b{color:var(--text);font-size:14px}
+.prompt{background:var(--paper);color:#222;border-radius:16px;padding:14px 18px;font-size:clamp(20px,3.2vw,26px);font-weight:800;line-height:1.7;
+  margin-bottom:10px;box-shadow:0 5px 0 rgba(0,0,0,.25)}
+.yomi{display:inline-block;border:3px solid var(--ng);border-radius:8px;padding:0 10px;margin:0 4px;color:#b3261e;background:#fff3f1;line-height:1.5}
+.hint{font-size:13px;color:var(--muted);margin:0 0 10px;min-height:21px}
+.hint b{color:var(--go)}
+.pad-wrap{display:flex;justify-content:center}
+.pad{--n:2;width:min(100%,calc(var(--n) * 210px));position:relative;background:var(--paper);border:3px solid var(--grid);border-radius:8px;
+  box-shadow:0 6px 0 rgba(0,0,0,.28)}
+.cells{display:grid;grid-template-columns:repeat(var(--n),1fr)}
+.cell{aspect-ratio:1;position:relative;border-right:2px solid var(--grid);container-type:inline-size}
+.cell:last-child{border-right:0}
+.cell::before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px dashed var(--grid2)}
+.cell::after{content:"";position:absolute;top:50%;left:0;right:0;border-top:2px dashed var(--grid2)}
+.g{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--kyokasho);font-weight:600;font-size:64px;font-size:74cqw;
+  line-height:1;color:transparent;z-index:1;padding-bottom:4%}
+.g.guide{color:rgba(20,30,50,.17)} .g.over{color:rgba(214,40,40,.42)}
+.pad canvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;touch-action:none;-webkit-touch-callout:none;cursor:crosshair}
+.ans-l{text-align:center;font-size:12px;color:var(--muted);margin:14px 0 6px}
+.ans .pad{border-color:var(--ok);box-shadow:none}
+.ans .g{color:var(--ink)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.ctrl .btn{flex:0 1 auto}
+.ctrl .btn.wide{flex:1 1 220px;max-width:340px}
+.drillc{font-family:var(--display);font-weight:400}
+
+/* storm meter */
+.stormbox{display:flex;align-items:center;gap:12px;background:linear-gradient(90deg,rgba(139,92,255,.3),rgba(139,92,255,.08));
+  border:2px solid var(--storm);border-radius:16px;padding:8px 14px;margin-bottom:12px}
+.stormbox svg{width:62px;height:62px;flex:none}
+.stormbox .sl{font-weight:800;font-size:14px;line-height:1.5}
+.stormbox .sl small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+.stormbox .sc{margin-left:auto;font-family:var(--display);font-size:24px;white-space:nowrap}
+.stormbox .sc small{font-size:13px;color:var(--muted)}
+
+/* results */
+.result{text-align:center;padding-block:24px}
+.result h1{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);margin:6px 0 4px;line-height:1.1;
+  display:inline-block;transform:skew(-8deg)}
+.result.win h1{color:var(--go);text-shadow:0 5px 0 var(--go-edge),0 0 40px rgba(255,210,63,.45)}
+.result.lose h1{color:#cdb8ff;text-shadow:0 5px 0 var(--storm-deep)}
+.result .rsub{color:var(--muted);margin:0 0 20px}
+.rstats{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.rstats div{background:var(--deep);border-radius:14px;padding:10px 20px;min-width:110px}
+.rstats b{font-family:var(--display);font-weight:400;font-size:30px;display:block}
+.rstats span{font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 18px}
+.chip{font-family:var(--kyokasho);font-weight:600;background:var(--deep);border:1px solid var(--edge);border-radius:8px;padding:2px 10px;font-size:17px}
+.chip small{font-family:var(--ui);font-size:11px;color:var(--muted);margin-left:5px}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.card{--rc:var(--com);aspect-ratio:3/4;border-radius:14px;border:2px solid var(--rc);position:relative;overflow:hidden;
+  background:linear-gradient(165deg,color-mix(in srgb,var(--rc) 55%,#0c1c36) 0%,#0c1c36 88%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 5px 0 var(--deep),inset 0 0 0 1px rgba(255,255,255,.08)}
+.card .k{font-family:var(--kyokasho);font-weight:600;font-size:52px;line-height:1.1;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.3)}
+.card .rn{position:absolute;bottom:0;left:0;right:0;font-size:10px;font-weight:800;padding:3px 0;background:var(--rc);color:#10131a;letter-spacing:.06em}
+.card .from{position:absolute;top:6px;left:8px;font-size:10px;color:rgba(255,255,255,.7)}
+.card.locked{--rc:#2b4a78;background:#0e2242;border-style:dashed;box-shadow:none}
+.card.locked .k{font-family:var(--display);font-size:34px;color:#2d4d80;text-shadow:none}
+.r-legend{--rc:var(--legend)} .r-epic{--rc:var(--epic)} .r-rare{--rc:var(--rare)} .r-unc{--rc:var(--unc)} .r-com{--rc:var(--com)}
+.legendrow{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--muted);margin-bottom:16px}
+.legendrow span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--rc);margin-right:6px;vertical-align:-1px}
+.legendrow b{color:var(--text);margin-left:4px}
+.ggroup{margin-top:22px}
+.ggroup h3{font-size:14px;margin:0 0 8px;color:var(--muted);font-weight:800}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(4,10,22,.78);display:grid;place-items:center;z-index:20;padding:16px;
+  animation:fade .18s ease-out}
+.mbox{background:linear-gradient(180deg,var(--panel2),var(--panel));border:2px solid var(--edge);border-radius:22px;padding:24px;
+  width:min(100%,520px);max-height:88dvh;overflow:auto;box-shadow:0 10px 0 var(--deep);text-align:center}
+.mq{font-size:17px;font-weight:800;margin:4px 0 20px}
+.mrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.drop h2{font-family:var(--display);font-weight:400;font-size:34px;margin:0 0 4px;transform:skew(-8deg);color:var(--go)}
+.drop p{color:var(--muted);margin:0 0 18px;font-size:14px}
+.dcards{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+.dcards .card{width:132px;animation:cardin .7s cubic-bezier(.2,1.4,.4,1) both}
+.dcards .card .k{font-size:74px}
+.dcards .card::before{content:"";position:absolute;inset:-40%;background:conic-gradient(from 0deg,transparent,color-mix(in srgb,var(--rc) 50%,transparent),transparent 30%);
+  animation:spin 3s linear infinite}
+.dcards .card>*{position:relative}
+.dw{font-size:13px;color:var(--muted);margin-top:8px}
+.sheet h2{font-family:var(--display);font-weight:400;font-size:26px;margin:0}
+.sheet .sd{color:var(--muted);font-size:13px;margin:4px 0 16px}
+.sheet .bosses{grid-template-columns:repeat(auto-fill,minmax(70px,1fr))}
+.wlist{text-align:left;margin:14px 0 18px;display:grid;gap:6px}
+.wlist div{display:flex;align-items:baseline;gap:10px;background:var(--deep);border-radius:10px;padding:6px 12px}
+.wlist .ww{font-family:var(--kyokasho);font-weight:600;font-size:20px}
+.wlist .wr{font-size:13px;color:var(--muted)}
+.wlist .wm{margin-left:auto;font-size:12px;font-weight:800}
+.wlist .wm.c{color:var(--ok)} .wlist .wm.m{color:var(--ng)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#fff;color:#111;font-weight:800;border-radius:14px;
+  padding:10px 18px;z-index:30;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:calc(100% - 32px);text-align:center}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:15;overflow:hidden}
+.confetti i{position:absolute;top:-20px;width:10px;height:16px;border-radius:2px;animation:fall linear forwards}
+
+/* parent */
+.form{display:grid;gap:14px}
+.frow{display:flex;gap:12px;flex-wrap:wrap}
+.frow label{flex:1 1 150px}
+label{display:block;font-size:12px;color:var(--muted);font-weight:800}
+input,textarea{width:100%;margin-top:5px;background:var(--deep);border:2px solid var(--edge);border-radius:12px;color:var(--text);
+  font:inherit;font-size:16px;padding:10px 12px;-webkit-user-select:text;user-select:text}
+textarea{min-height:230px;line-height:1.7;font-family:var(--ui)}
+.pnote{font-size:13px;color:var(--muted);margin:0;line-height:1.75}
+.pnote b{color:var(--text)}
+.pnote code{background:var(--deep);border-radius:5px;padding:1px 6px;color:var(--go);font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.preview{font-size:13px;color:var(--muted);background:var(--deep);border-radius:12px;padding:10px 14px;line-height:1.8}
+.preview .err{color:var(--ng)}
+.preview .k{font-family:var(--kyokasho);font-weight:600;color:var(--go);font-size:16px;letter-spacing:.1em}
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--edge);text-align:left;white-space:nowrap}
+th{font-size:11px;color:var(--muted)}
+td input{width:70px;margin:0;padding:6px 8px}
+.delw{color:var(--ng);font-size:12px;font-weight:800}
+
+@keyframes fade{from{opacity:0}}
+@keyframes cardin{from{transform:scale(.4) rotateY(100deg);opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@media (max-width:560px){
+  .days{grid-template-columns:repeat(3,1fr);row-gap:14px}
+  .hud{gap:8px 12px} .xpbar{width:80px}
+  .panel{padding:16px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.app{padding-top:calc(14px + env(safe-area-inset-top))}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hud" id="hud"></header>
+  <main id="view"></main>
+</div>
+<nav class="tabs" id="tabs"></nav>
+
+<script>
+(function(){
+'use strict';
+var BACKLOG = [{"kai":4,"date":"2026-03-07","bosses":[{"ch":"述","words":[{"w":"述べる","r":"のべる","c":"意見を{}","rate":77.3},{"w":"前述","r":"ぜんじゅつ","c":"{}のとおり","rate":69.1},{"w":"口述筆記","r":"こうじゅつひっき","c":"{}で本を書く","rate":54.1}]},{"ch":"造","words":[{"w":"木造","r":"もくぞう","c":"{}の家","rate":89.2},{"w":"改造","r":"かいぞう","c":"自転車を{}する","rate":80.5},{"w":"造る","r":"つくる","c":"船を{}","rate":82.5}]},{"ch":"復","words":[{"w":"往復","r":"おうふく","c":"駅まで{}する","rate":72.0},{"w":"復帰","r":"ふっき","c":"チームに{}する","rate":56.7}]},{"ch":"退","words":[{"w":"退ける","r":"しりぞける","c":"敵を{}","rate":66.3},{"w":"退院","r":"たいいん","c":"病院を{}する","rate":67.2}]},{"ch":"徳","words":[{"w":"人徳","r":"じんとく","c":"{}のある人","rate":78.7},{"w":"功徳","r":"くどく","c":"{}をつむ","rate":42.2},{"w":"道徳","r":"どうとく","c":"{}の時間","rate":81.4},{"w":"美徳","r":"びとく","c":"けんきょは{}だ","rate":75.3}]},{"ch":"飼","words":[{"w":"飼い犬","r":"かいいぬ","c":"{}に手をかまれる","rate":70.3},{"w":"飼い殺し","r":"かいごろし","c":"才能を{}にする","rate":57.3},{"w":"飼育","r":"しいく","c":"うさぎを{}する","rate":64.5}]},{"ch":"迷","words":[{"w":"迷子","r":"まいご","c":"遊園地で{}になる","rate":77.2},{"w":"迷い","r":"まよい","c":"{}がふっきれる","rate":81.9}]}]},{"kai":5,"date":"2026-03-14","bosses":[{"ch":"略","words":[{"w":"計略","r":"けいりゃく","c":"敵の{}にかかる","rate":78.3},{"w":"前略","r":"ぜんりゃく","c":"手紙の書き出しの「{}」","rate":71.0}]},{"ch":"適","words":[{"w":"適切","r":"てきせつ","c":"{}な言葉を選ぶ","rate":51.4},{"w":"適正","r":"てきせい","c":"{}な価格","rate":46.9}]},{"ch":"過","words":[{"w":"過去","r":"かこ","c":"{}をふり返る","rate":70.5},{"w":"過ごす","r":"すごす","c":"夏休みを{}","rate":63.3},{"w":"過労","r":"かろう","c":"{}でたおれる","rate":71.0}]},{"ch":"険","words":[{"w":"険しい","r":"けわしい","c":"{}山道","rate":78.9},{"w":"険悪","r":"けんあく","c":"{}なふんいき","rate":68.6}]},{"ch":"留","words":[{"w":"留守番","r":"るすばん","c":"{}をする","rate":59.9},{"w":"留める","r":"とめる","c":"紙をピンで{}","rate":66.2},{"w":"留学","r":"りゅうがく","c":"海外に{}する","rate":73.9}]},{"ch":"防","words":[{"w":"予防","r":"よぼう","c":"かぜを{}する","rate":86.5},{"w":"防ぐ","r":"ふせぐ","c":"事故を{}","rate":83.2}]},{"ch":"際","words":[{"w":"実際","r":"じっさい","c":"{}にやってみる","rate":72.1},{"w":"手際","r":"てぎわ","c":"{}がよい","rate":61.7}]},{"ch":"限","words":[{"w":"期限","r":"きげん","c":"しめきりの{}","rate":61.2},{"w":"無限","r":"むげん","c":"{}の可能性","rate":73.0}]}]},{"kai":6,"date":"2026-03-21","bosses":[{"ch":"営","words":[{"w":"営む","r":"いとなむ","c":"店を{}","rate":85.9},{"w":"自営業","r":"じえいぎょう","c":"父は{}だ","rate":75.1},{"w":"運営","r":"うんえい","c":"会を{}する","rate":76.5}]},{"ch":"複","words":[{"w":"複数","r":"ふくすう","c":"{}の答え","rate":81.5},{"w":"複写機","r":"ふくしゃき","c":"{}でコピーする","rate":59.2},{"w":"重複","r":"ちょうふく","c":"話が{}する","rate":58.0},{"w":"複合","r":"ふくごう","c":"{}施設","rate":50.0}]},{"ch":"序","words":[{"w":"序の口","r":"じょのくち","c":"まだほんの{}だ","rate":68.1},{"w":"序列","r":"じょれつ","c":"{}をつける","rate":76.6}]},{"ch":"製","words":[{"w":"製図","r":"せいず","c":"{}の道具","rate":56.2},{"w":"製品","r":"せいひん","c":"新しい{}","rate":61.2}]},{"ch":"容","words":[{"w":"美容","r":"びよう","c":"{}院に行く","rate":72.5},{"w":"形容","r":"けいよう","c":"言葉で{}する","rate":19.5}]},{"ch":"富","words":[{"w":"富む","r":"とむ","c":"変化に{}","rate":77.7}]},{"ch":"寄","words":[{"w":"寄生虫","r":"きせいちゅう","c":"体の中の{}","rate":68.0},{"w":"寄付","r":"きふ","c":"お金を{}する","rate":71.5}]},{"ch":"師","words":[{"w":"教師","r":"きょうし","c":"学校の{}","rate":78.3},{"w":"牧師","r":"ぼくし","c":"教会の{}","rate":68.3}]}]},{"kai":9,"date":"2026-04-11","bosses":[{"ch":"券","words":[{"w":"回数券","r":"かいすうけん","c":"バスの{}","rate":59.2},{"w":"前売券","r":"まえうりけん","c":"映画の{}","rate":52.1},{"w":"乗車券","r":"じょうしゃけん","c":"電車の{}","rate":53.0}]},{"ch":"則","words":[{"w":"法則","r":"ほうそく","c":"自然の{}","rate":75.0},{"w":"教則本","r":"きょうそくぼん","c":"ピアノの{}","rate":64.2}]},{"ch":"舎","words":[{"w":"田舎","r":"いなか","c":"{}のおばあちゃんの家","rate":77.4},{"w":"校舎","r":"こうしゃ","c":"新しい{}","rate":82.8}]},{"ch":"因","words":[{"w":"因る","r":"よる","c":"不注意に{}事故","rate":69.7},{"w":"因果関係","r":"いんがかんけい","c":"{}を調べる","rate":66.3},{"w":"原因","r":"げんいん","c":"火事の{}","rate":76.7},{"w":"敗因","r":"はいいん","c":"試合の{}","rate":67.6}]},{"ch":"制","words":[{"w":"強制","r":"きょうせい","c":"{}的に参加させる","rate":62.1},{"w":"制約","r":"せいやく","c":"時間の{}がある","rate":61.9},{"w":"制す","r":"せいす","c":"先んずれば人を{}","rate":68.2}]},{"ch":"判","words":[{"w":"判別","r":"はんべつ","c":"本物かどうか{}する","rate":77.1},{"w":"判定","r":"はんてい","c":"審判の{}","rate":75.7}]},{"ch":"余","words":[{"w":"余念","r":"よねん","c":"練習に{}がない","rate":63.6},{"w":"余罪","r":"よざい","c":"{}を調べる","rate":56.5},{"w":"余生","r":"よせい","c":"田舎で{}を送る","rate":60.5}]},{"ch":"罪","words":[{"w":"余罪","r":"よざい","c":"{}を調べる","rate":56.5},{"w":"罪悪感","r":"ざいあくかん","c":"{}を感じる","rate":63.2}]}]},{"kai":10,"date":"2026-04-18","bosses":[{"ch":"版","words":[{"w":"版画","r":"はんが","c":"木の{}","rate":74.4},{"w":"出版","r":"しゅっぱん","c":"本を{}する","rate":74.3}]},{"ch":"報","words":[{"w":"電報","r":"でんぽう","c":"お祝いの{}","rate":43.0},{"w":"報道","r":"ほうどう","c":"ニュースの{}","rate":64.0}]},{"ch":"示","words":[{"w":"暗示","r":"あんじ","c":"{}にかかる","rate":71.9},{"w":"指示","r":"しじ","c":"先生の{}にしたがう","rate":66.1},{"w":"標示","r":"ひょうじ","c":"道路の{}","rate":60.4}]},{"ch":"弁","words":[{"w":"答弁","r":"とうべん","c":"大臣が{}する","rate":48.6},{"w":"弁明","r":"べんめい","c":"遅刻の{}をする","rate":69.6}]},{"ch":"幹","words":[{"w":"新幹線","r":"しんかんせん","c":"{}に乗る","rate":63.2},{"w":"幹事","r":"かんじ","c":"旅行の{}","rate":52.7},{"w":"根幹","r":"こんかん","c":"計画の{}","rate":64.2}]}]},{"kai":11,"date":"2026-04-25","bosses":[{"ch":"可","words":[{"w":"不可欠","r":"ふかけつ","c":"水は生きるのに{}だ","rate":57.8},{"w":"可決","r":"かけつ","c":"法案を{}する","rate":60.6}]},{"ch":"断","words":[{"w":"横断","r":"おうだん","c":"道路を{}する","rate":72.3},{"w":"断定","r":"だんてい","c":"犯人だと{}する","rate":64.5}]},{"ch":"句","words":[{"w":"句会","r":"くかい","c":"俳句の{}","rate":33.7},{"w":"一言半句","r":"いちごんはんく","c":"{}も聞きもらさない","rate":67.0}]}]},{"kai":12,"date":"2026-05-09","bosses":[{"ch":"設","words":[{"w":"設置","r":"せっち","c":"消火器を{}する","rate":73.8},{"w":"設計図","r":"せっけいず","c":"家の{}","rate":71.1},{"w":"設ける","r":"もうける","c":"話し合いの場を{}","rate":54.9}]},{"ch":"規","words":[{"w":"規約","r":"きやく","c":"会の{}","rate":65.8},{"w":"定規","r":"じょうぎ","c":"{}で線を引く","rate":64.4}]},{"ch":"職","words":[{"w":"教職","r":"きょうしょく","c":"{}につく","rate":56.5},{"w":"職員室","r":"しょくいんしつ","c":"{}に行く","rate":68.6}]},{"ch":"預","words":[{"w":"預かり","r":"あずかり","c":"荷物の{}所","rate":70.3},{"w":"預ける","r":"あずける","c":"お金を銀行に{}","rate":79.9},{"w":"預金","r":"よきん","c":"銀行の{}","rate":76.9}]},{"ch":"定","words":[{"w":"定規","r":"じょうぎ","c":"{}で線を引く","rate":64.4},{"w":"定評","r":"ていひょう","c":"味に{}がある","rate":65.2}]}]},{"kai":13,"date":"2026-05-16","bosses":[{"ch":"講","words":[{"w":"講堂","r":"こうどう","c":"学校の{}","rate":45.0},{"w":"講習会","r":"こうしゅうかい","c":"水泳の{}","rate":41.8},{"w":"講和","r":"こうわ","c":"{}条約","rate":48.9}]},{"ch":"謝","words":[{"w":"謝礼","r":"しゃれい","c":"{}をはらう","rate":59.3},{"w":"謝辞","r":"しゃじ","c":"卒業式の{}","rate":35.9}]},{"ch":"領","words":[{"w":"領土","r":"りょうど","c":"国の{}","rate":78.3},{"w":"要領","r":"ようりょう","c":"{}がよい","rate":44.8}]},{"ch":"識","words":[{"w":"見識","r":"けんしき","c":"{}のある人","rate":42.5},{"w":"良識","r":"りょうしき","c":"{}ある行動","rate":47.8},{"w":"識別","r":"しきべつ","c":"色を{}する","rate":72.9}]},{"ch":"護","words":[{"w":"護送車","r":"ごそうしゃ","c":"容疑者を乗せた{}","rate":59.0},{"w":"愛護","r":"あいご","c":"動物{}週間","rate":64.8},{"w":"護岸","r":"ごがん","c":"川の{}工事","rate":41.8}]},{"ch":"招","words":[{"w":"招待","r":"しょうたい","c":"誕生会に{}する","rate":64.1},{"w":"招集","r":"しょうしゅう","c":"会議を{}する","rate":52.2},{"w":"手招き","r":"てまねき","c":"{}して呼ぶ","rate":64.3}]}]},{"kai":14,"date":"2026-05-23","bosses":[{"ch":"採","words":[{"w":"採集","r":"さいしゅう","c":"こん虫{}","rate":73.8},{"w":"採る","r":"とる","c":"山できのこを{}","rate":70.9},{"w":"採用","r":"さいよう","c":"意見を{}する","rate":74.0}]},{"ch":"授","words":[{"w":"伝授","r":"でんじゅ","c":"技を{}する","rate":70.4},{"w":"授賞式","r":"じゅしょうしき","c":"賞の{}","rate":62.3}]},{"ch":"接","words":[{"w":"接客","r":"せっきゃく","c":"店員の{}","rate":74.0},{"w":"接近","r":"せっきん","c":"台風が{}する","rate":79.0},{"w":"接続","r":"せつぞく","c":"コードを{}する","rate":74.7}]},{"ch":"故","words":[{"w":"故意","r":"こい","c":"{}にぶつかる","rate":70.8}]},{"ch":"支","words":[{"w":"支持","r":"しじ","c":"意見を{}する","rate":44.3},{"w":"支える","r":"ささえる","c":"家族を{}","rate":92.0},{"w":"支店長","r":"してんちょう","c":"銀行の{}","rate":81.8},{"w":"支出","r":"ししゅつ","c":"収入と{}","rate":82.5}]},{"ch":"政","words":[{"w":"政令","r":"せいれい","c":"{}指定都市","rate":67.9},{"w":"行政","r":"ぎょうせい","c":"{}の仕事","rate":47.3}]}]},{"kai":16,"date":"2026-06-06","bosses":[{"ch":"勢","words":[{"w":"勢い","r":"いきおい","c":"{}よく走る","rate":80.5},{"w":"運勢","r":"うんせい","c":"今日の{}","rate":69.9}]},{"ch":"興","words":[{"w":"復興","r":"ふっこう","c":"町の{}","rate":60.2},{"w":"興味","r":"きょうみ","c":"星に{}がある","rate":75.0}]},{"ch":"個","words":[{"w":"個別","r":"こべつ","c":"{}に相談する","rate":84.5},{"w":"個室","r":"こしつ","c":"病院の{}","rate":87.9}]}]},{"kai":17,"date":"2026-06-13","bosses":[{"ch":"修","words":[{"w":"修理","r":"しゅうり","c":"時計を{}する","rate":86.2},{"w":"修学旅行","r":"しゅうがくりょこう","c":"{}で京都へ行く","rate":79.1},{"w":"修める","r":"おさめる","c":"学問を{}","rate":75.9}]},{"ch":"属","words":[{"w":"帰属","r":"きぞく","c":"会社への{}意識","rate":51.4},{"w":"付属品","r":"ふぞくひん","c":"カメラの{}","rate":48.2},{"w":"所属","r":"しょぞく","c":"サッカー部に{}する","rate":76.7}]},{"ch":"保","words":[{"w":"保養","r":"ほよう","c":"温泉で{}する","rate":49.7},{"w":"保健","r":"ほけん","c":"{}室","rate":80.7}]},{"ch":"像","words":[{"w":"画像","r":"がぞう","c":"{}を送る","rate":91.9},{"w":"想像","r":"そうぞう","c":"未来を{}する","rate":66.1}]},{"ch":"俵","words":[{"w":"土俵","r":"どひょう","c":"すもうの{}","rate":87.4},{"w":"百俵","r":"ひゃっぴょう","c":"米{}","rate":85.1}]},{"ch":"備","words":[{"w":"備考","r":"びこう","c":"{}らんに書く","rate":49.6},{"w":"整備","r":"せいび","c":"車を{}する","rate":71.8}]}]},{"kai":19,"date":"2026-06-27","bosses":[{"ch":"妻","words":[{"w":"妻帯者","r":"さいたいしゃ","c":"{}（結婚している男性）","rate":51.6},{"w":"妻子","r":"さいし","c":"{}を養う","rate":65.6}]},{"ch":"婦","words":[{"w":"婦人服","r":"ふじんふく","c":"デパートの{}売り場","rate":67.4},{"w":"主婦","r":"しゅふ","c":"{}の仕事","rate":64.5}]},{"ch":"犯","words":[{"w":"知能犯","r":"ちのうはん","c":"{}の事件","rate":49.9},{"w":"犯人","r":"はんにん","c":"{}をつかまえる","rate":79.1},{"w":"共犯","r":"きょうはん","c":"{}者","rate":65.6}]},{"ch":"状","words":[{"w":"礼状","r":"れいじょう","c":"お世話になった人への{}","rate":73.1},{"w":"別状","r":"べつじょう","c":"命に{}はない","rate":74.7}]},{"ch":"解","words":[{"w":"解く","r":"とく","c":"問題を{}","rate":76.6},{"w":"分解","r":"ぶんかい","c":"時計を{}する","rate":84.6},{"w":"解放","r":"かいほう","c":"人質を{}する","rate":75.9}]},{"ch":"義","words":[{"w":"義足","r":"ぎそく","c":"{}のランナー","rate":71.5},{"w":"義母","r":"ぎぼ","c":"{}（夫や妻の母）","rate":67.0}]}]},{"kai":20,"date":"2026-07-04","bosses":[{"ch":"責","words":[{"w":"重責","r":"じゅうせき","c":"{}をはたす","rate":78.7},{"w":"自責","r":"じせき","c":"{}の念にかられる","rate":84.0},{"w":"責め","r":"せめ","c":"{}を負う","rate":69.1}]},{"ch":"財","words":[{"w":"文化財","r":"ぶんかざい","c":"重要{}","rate":72.9},{"w":"財産","r":"ざいさん","c":"{}を残す","rate":75.7}]},{"ch":"久","words":[{"w":"持久力","r":"じきゅうりょく","c":"{}をつける","rate":69.1},{"w":"永久","r":"えいきゅう","c":"{}歯","rate":48.6},{"w":"久方","r":"ひさかた","c":"{}ぶりに会う","rate":70.4}]},{"ch":"貸","words":[{"w":"貸し借り","r":"かしかり","c":"お金の{}","rate":62.9},{"w":"貸す","r":"かす","c":"友だちに本を{}","rate":77.1}]}]},{"kai":21,"date":"2026-07-11","bosses":[{"ch":"貧","words":[{"w":"貧相","r":"ひんそう","c":"{}な身なり","rate":70.2},{"w":"貧富","r":"ひんぷ","c":"{}の差","rate":66.1},{"w":"貧しい","r":"まずしい","c":"{}くらし","rate":85.4}]},{"ch":"非","words":[{"w":"非力","r":"ひりき","c":"{}な自分","rate":80.1},{"w":"非行","r":"ひこう","c":"{}に走る","rate":83.7},{"w":"非常","r":"ひじょう","c":"{}口","rate":86.0}]},{"ch":"賛","words":[{"w":"自画自賛","r":"じがじさん","c":"自分の絵を{}する","rate":72.4},{"w":"絶賛","r":"ぜっさん","c":"映画を{}する","rate":79.6},{"w":"賛美歌","r":"さんびか","c":"教会の{}","rate":56.9},{"w":"協賛","r":"きょうさん","c":"企業が{}する","rate":57.1}]}]},{"kai":28,"date":"2026-09-05","bosses":[{"ch":"揮","words":[{"w":"揮発性","r":"きはつせい","c":"{}の液体","rate":73.3},{"w":"発揮","r":"はっき","c":"力を{}する","rate":75.6},{"w":"指揮者","r":"しきしゃ","c":"オーケストラの{}","rate":61.2}]},{"ch":"発","words":[{"w":"揮発性","r":"きはつせい","c":"{}の液体","rate":73.3},{"w":"発揮","r":"はっき","c":"力を{}する","rate":75.6}]},{"ch":"段","words":[{"w":"手段","r":"しゅだん","c":"{}を選ばない","rate":70.9},{"w":"算段","r":"さんだん","c":"お金の{}をする","rate":54.4},{"w":"階段","r":"かいだん","c":"{}を上る","rate":55.1}]},{"ch":"尊","words":[{"w":"尊い","r":"とうとい","c":"{}命","rate":77.8},{"w":"自尊心","r":"じそんしん","c":"{}が強い","rate":71.7}]},{"ch":"将","words":[{"w":"将来","r":"しょうらい","c":"{}の夢","rate":74.1},{"w":"名将","r":"めいしょう","c":"戦国時代の{}","rate":61.9},{"w":"冬将軍","r":"ふゆしょうぐん","c":"{}がやってくる","rate":60.0}]},{"ch":"収","words":[{"w":"回収","r":"かいしゅう","c":"ごみを{}する","rate":80.4},{"w":"収集","r":"しゅうしゅう","c":"切手を{}する","rate":56.8},{"w":"収める","r":"おさめる","c":"成功を{}","rate":71.9}]},{"ch":"寸","words":[{"w":"寸前","r":"すんぜん","c":"ゴール{}","rate":77.0},{"w":"寸法","r":"すんぽう","c":"服の{}をはかる","rate":70.4}]}]},{"kai":29,"date":"2026-09-12","bosses":[{"ch":"敬","words":[{"w":"敬う","r":"うやまう","c":"お年寄りを{}","rate":65.8},{"w":"敬服","r":"けいふく","c":"努力に{}する","rate":40.2},{"w":"敬老","r":"けいろう","c":"{}の日","rate":70.6}]},{"ch":"疑","words":[{"w":"容疑","r":"ようぎ","c":"{}者","rate":54.7}]},{"ch":"奏","words":[{"w":"奏する","r":"そうする","c":"功を{}","rate":48.5},{"w":"独奏","r":"どくそう","c":"ピアノの{}","rate":57.0}]},{"ch":"処","words":[{"w":"処方","r":"しょほう","c":"薬を{}する","rate":68.2},{"w":"処世","r":"しょせい","c":"{}術","rate":36.9}]}]}];
+
+/* ---------- helpers ---------- */
+var $ = function(s,el){ return (el||document).querySelector(s); };
+function esc(s){ return String(s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function fmt(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function today(){ return fmt(new Date()); }
+function parseD(s){ var a=s.split('-').map(Number); return new Date(a[0],a[1]-1,a[2]); }
+function addDays(s,n){ var d=parseD(s); d.setDate(d.getDate()+n); return fmt(d); }
+function diffDays(a,b){ return Math.round((parseD(b)-parseD(a))/86400000); }
+function md(s){ var d=parseD(s); return (d.getMonth()+1)+'/'+d.getDate(); }
+var WD='日月火水木金土';
+function wd(s){ return WD[parseD(s).getDay()]; }
+function shuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function KJ(s){ return Array.from(s).filter(function(c){ return /[㐀-鿿々]/.test(c); }); }
+function uniq(a){ return a.filter(function(x,i){ return a.indexOf(x)===i; }); }
+
+var RAR = {legend:'レジェンド',epic:'エピック',rare:'レア',unc:'アンコモン',com:'コモン'};
+var RAR_ORDER = ['legend','epic','rare','unc','com'];
+
+/* ---------- state ---------- */
+var LS='kanji-royale-v1', LSM='kanji-royale-mute';
+function blank(){ return {v:1,updatedAt:0,xp:0,weeks:{},rev:{},log:[]}; }
+function load(){ try{ var s=JSON.parse(localStorage.getItem(LS)); if(s&&s.v===1) return s; }catch(e){} return blank(); }
+function saveLocal(){ try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){} }
+var state = load();
+var mute=false; try{ mute = localStorage.getItem(LSM)==='1'; }catch(e){}
+function newRec(){ return {st:{},bosses:{},sessions:0,studied:false,storm:{best:null,tries:0,won:false}}; }
+
+/* ---------- sync (db when available, this device otherwise) ---------- */
+var docRef=null, writeTimer=null, chain=Promise.resolve(), syncMode='local', firstSnap=true, pendingRemote=null;
+function commit(){
+  state.updatedAt=Date.now(); saveLocal();
+  if(docRef){ clearTimeout(writeTimer); writeTimer=setTimeout(pushRemote,1200); }
+}
+function pushRemote(){
+  writeTimer=null; if(!docRef) return;
+  var body=JSON.parse(JSON.stringify(state));
+  chain = chain.then(function(){ return docRef.set(body); }).catch(function(e){
+    if(e && e.code==='invalid_argument'){ docRef=null; syncMode='local'; hud(); }
+  });
+}
+function initSync(){
+  if(!window.claude || typeof window.claude.use!=='function') return;
+  window.claude.use('db').then(function(db){
+    if(!db) return;
+    try{ docRef=db.doc('royale/state'); }catch(e){ return; }
+    syncMode='on'; hud();
+    docRef.onSnapshot(function(snap){
+      var wasFirst=firstSnap; firstSnap=false;
+      if(!snap.exists){ if(wasFirst && state.updatedAt) setTimeout(pushRemote,0); return; }
+      var r=snap.data(); if(!r || r.v!==1) return;
+      if((r.updatedAt||0)>(state.updatedAt||0)){
+        var copy=JSON.parse(JSON.stringify(r));
+        if(S){ pendingRemote=copy; } else { state=copy; saveLocal(); render(); }
+      } else if(wasFirst && (r.updatedAt||0)<(state.updatedAt||0)){ setTimeout(pushRemote,0); }
+    }, function(){ syncMode='local'; hud(); });
+  }).catch(function(){});
+}
+
+/* ---------- sound ---------- */
+var AC=null;
+function sfx(k){
+  if(mute) return;
+  try{ AC = AC || new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){ return; }
+  var seq={ok:[[660,.07],[990,.13]],ng:[[196,.2]],flip:[[540,.05]],drop:[[523,.08],[659,.08],[784,.08],[1047,.24]],
+    win:[[392,.1],[523,.1],[659,.1],[784,.12],[1047,.4]],end:[[440,.1],[587,.18]]}[k];
+  if(!seq) return;
+  var t=AC.currentTime;
+  seq.forEach(function(p){
+    var o=AC.createOscillator(), g=AC.createGain();
+    o.type = k==='ng' ? 'square' : 'triangle'; o.frequency.value=p[0];
+    var peak = k==='ng' ? .05 : .12;
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(peak,t+.012); g.gain.exponentialRampToValueAtTime(.0001,t+p[1]);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+p[1]+.03); t+=p[1]*.9;
+  });
+}
+
+/* ---------- pools ---------- */
+function computeBosses(words){
+  var map={}, order=[];
+  words.forEach(function(o){ uniq(KJ(o.w)).forEach(function(ch){ if(!map[ch]){ map[ch]=[]; order.push(ch); } map[ch].push(o.w); }); });
+  var bosses=[], covered={};
+  order.forEach(function(ch){ if(map[ch].length>=2){ bosses.push({ch:ch,words:map[ch]}); map[ch].forEach(function(w){ covered[w]=1; }); } });
+  words.forEach(function(o){
+    if(covered[o.w]) return; var ch=KJ(o.w)[0]; if(!ch) return;
+    var b=bosses.find(function(x){ return x.ch===ch; }); if(!b){ b={ch:ch,words:[]}; bosses.push(b); }
+    b.words.push(o.w); covered[o.w]=1;
+  });
+  return bosses;
+}
+var EMPTY=newRec();
+function weeksSorted(){ return Object.keys(state.weeks).map(function(k){ return state.weeks[k]; }).sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; }); }
+function currentWeek(){ var t=today(), ws=weeksSorted(); return ws.find(function(w){ return w.date>=t; }) || ws[ws.length-1] || null; }
+function weekPool(wk){ return {kind:'week',id:wk.id,title:'第'+wk.kai+'回',words:wk.words,bosses:computeBosses(wk.words),rec:wk.rec}; }
+function islandPool(isl){
+  var words=[], seen={}, rates={};
+  isl.bosses.forEach(function(b){ b.words.forEach(function(x){ if(!seen[x.w]){ seen[x.w]=1; words.push(x); } rates[x.w]=x.rate; }); });
+  var id='k'+isl.kai;
+  return {kind:'rev',id:id,kai:isl.kai,title:'第'+isl.kai+'回アイランド',words:words,rates:rates,
+    bosses:isl.bosses.map(function(b){ return {ch:b.ch,words:b.words.map(function(x){ return x.w; })}; }),
+    rec:state.rev[id]||EMPTY};
+}
+function isClear(rec,w){ return !!(rec.st[w] && rec.st[w].s==='clear'); }
+function hpOf(rec,b){ return b.words.filter(function(w){ return !isClear(rec,w); }).length; }
+function wordObj(pool,w){ return pool.words.find(function(o){ return o.w===w; }); }
+
+/* ---------- xp / streak ---------- */
+function level(){ return 1+Math.floor(state.xp/250); }
+function streak(){
+  var days={}; state.log.forEach(function(l){ days[l.d]=1; });
+  var d=today(); if(!days[d]) d=addDays(d,-1);
+  var n=0; while(days[d]){ n++; d=addDays(d,-1); } return n;
+}
+var S=null;
+function gain(n){ state.xp+=n; if(S) S.xp+=n; }
+function doneOn(pid,m,d){ return state.log.some(function(l){ return l.p===pid && l.m===m && l.d===d; }); }
+
+/* ---------- UI chrome ---------- */
+var view='lobby';
+function hud(){
+  var lv=level(), within=state.xp%250;
+  $('#hud').innerHTML =
+    '<div class="brand"><i>漢</i>カンジ・ロワイヤル</div>'+
+    '<div class="lv">Lv.'+lv+'<div class="xpbar" title="'+within+' / 250 XP"><i style="width:'+(within/2.5)+'%"></i></div></div>'+
+    '<div class="streak">連続 <b>'+streak()+'</b> 日</div>'+
+    '<div class="sync '+(syncMode==='on'?'on':'')+'">'+(syncMode==='on'?'記録は自動で同期':'この端末に保存')+'</div>'+
+    '<button class="mute" data-act="mute">音 '+(mute?'オフ':'オン')+'</button>';
+}
+function tabs(){
+  $('#tabs').innerHTML =
+    '<button class="tab '+(view==='lobby'?'on':'')+'" data-act="tab" data-v="lobby">ロビー</button>'+
+    '<button class="tab '+(view==='locker'?'on':'')+'" data-act="tab" data-v="locker">ロッカー</button>'+
+    '<button class="tab '+(view==='parent'?'on':'')+'" id="ptab">おうちの人<span class="hold"></span></button>';
+  var pt=$('#ptab'), timer=null;
+  function cancel(){ clearTimeout(timer); pt.classList.remove('holding'); }
+  pt.addEventListener('pointerdown',function(){ if(view==='parent') return; pt.classList.add('holding'); timer=setTimeout(function(){ cancel(); view='parent'; render(); },900); });
+  pt.addEventListener('pointerup',function(){ if(timer && view!=='parent' && pt.classList.contains('holding')) toast('おうちの人ボタンは長押しで開きます'); cancel(); });
+  pt.addEventListener('pointerleave',cancel); pt.addEventListener('pointercancel',cancel);
+}
+function toast(t){
+  var el=document.createElement('div'); el.className='toast'; el.textContent=t; document.body.appendChild(el);
+  setTimeout(function(){ el.remove(); },2400);
+}
+function modal(html,cls){
+  var m=document.createElement('div'); m.className='modal'; m.innerHTML='<div class="mbox '+(cls||'')+'">'+html+'</div>';
+  document.body.appendChild(m); return m;
+}
+function ask(text,ok,cancel){
+  return new Promise(function(res){
+    var m=modal('<p class="mq">'+esc(text)+'</p><div class="mrow"><button class="btn ghost" data-v="0">'+esc(cancel||'やめる')+'</button><button class="btn go" data-v="1">'+esc(ok||'OK')+'</button></div>');
+    m.addEventListener('click',function(e){ var b=e.target.closest('[data-v]'); if(!b) return; m.remove(); res(b.dataset.v==='1'); });
+  });
+}
+function confetti(){
+  var box=document.createElement('div'); box.className='confetti';
+  var cols=['#ffd23f','#33d18a','#3ea3ff','#b86cff','#ff6b5b','#ffffff'];
+  for(var i=0;i<46;i++){ var c=document.createElement('i'); c.style.left=Math.random()*100+'%'; c.style.background=cols[i%cols.length];
+    c.style.animationDuration=(1.6+Math.random()*1.8)+'s'; c.style.animationDelay=(Math.random()*.6)+'s'; box.appendChild(c); }
+  document.body.appendChild(box); setTimeout(function(){ box.remove(); },4200);
+}
+
+/* ---------- card / boss html ---------- */
+function bossHTML(rec,b,showKanji){
+  var d=rec.bosses[b.ch], hp=hpOf(rec,b), pips='';
+  for(var i=0;i<b.words.length;i++) pips+='<i class="'+(i<hp?'':'x')+'"></i>';
+  if(d) return '<div class="boss def r-'+d.r+'" style="--rc:var(--'+d.r+')"><div class="bk">'+esc(b.ch)+'</div><div class="rn">'+RAR[d.r]+'</div></div>';
+  return '<div class="boss"><div class="bk">'+(showKanji?'<span style="font-family:var(--kyokasho);color:#fff">'+esc(b.ch)+'</span>':'？')+'</div><div class="hp">'+pips+'</div></div>';
+}
+function cardHTML(ch,r,from,act){
+  return '<button class="card r-'+r+'" '+(act||'')+'>'+(from?'<span class="from">'+esc(from)+'</span>':'')+'<span class="k">'+esc(ch)+'</span><span class="rn">'+RAR[r]+'</span></button>';
+}
+
+/* ---------- lobby ---------- */
+var PLAN=[{o:-6,m:'study',t:'作戦会議'},{o:-4,m:'battle',t:'バトル'},{o:-3,m:'battle',t:'バトル'},{o:-2,m:'battle',t:'バトル'},{o:-1,m:'storm',t:'ファイナル'},{o:0,m:'real',t:'本番'}];
+function lobbyHTML(){
+  var wk=currentWeek(), h='';
+  if(wk){
+    var P=weekPool(wk), t=today(), left=diffDays(t,wk.date), rest=P.words.filter(function(o){ return !isClear(wk.rec,o.w); }).length;
+    var todayMode=null;
+    var days=PLAN.map(function(p){
+      var d=addDays(wk.date,p.o), isT=d===t, done=p.m!=='real' && doneOn(wk.id,p.m,d);
+      if(isT) todayMode=p.m;
+      return '<div class="day '+(isT?'today ':'')+(done?'done ':'')+(p.m==='real'?'real':'')+'"><div class="dd">'+md(d)+'('+wd(d)+')</div><div class="dm">'+p.t+'</div></div>';
+    }).join('');
+    var defeated=P.bosses.filter(function(b){ return wk.rec.bosses[b.ch]; }).length;
+    var cls=function(m){ return todayMode===m ? 'go big' : ''; };
+    h+='<section class="panel">'+
+      '<div class="season-top"><div><span class="plate"><span>今週のシーズン</span></span><h1>第'+wk.kai+'回 週テスト</h1></div>'+
+      '<div class="when">本番 '+md(wk.date)+'('+wd(wk.date)+') ・ '+(left>0?'あと <b>'+left+'</b> 日':left===0?'<b>きょう本番！</b>':'おわったシーズン')+'<br>ボス '+defeated+' / '+P.bosses.length+' 撃破</div></div>'+
+      '<div class="days">'+days+'</div>'+
+      '<div class="bosses">'+P.bosses.map(function(b){ return bossHTML(wk.rec,b,false); }).join('')+'</div>'+
+      '<div class="acts">'+
+        '<button class="btn '+cls('study')+'" data-act="play" data-pool="week" data-mode="study">作戦会議<small style="font-weight:500;font-size:12px">見て書く</small></button>'+
+        '<button class="btn '+(todayMode==='battle'?'go big':'')+'" data-act="play" data-pool="week" data-mode="battle" '+(rest?'':'disabled')+'>バトル<small style="font-weight:500;font-size:12px">のこり '+rest+' 語</small></button>'+
+        '<button class="btn storm '+(todayMode==='storm'?'big':'')+'" data-act="play" data-pool="week" data-mode="storm">ファイナル・ストーム<small style="font-weight:500;font-size:12px">'+(wk.rec.storm.best!=null?'最高 '+wk.rec.storm.best+'/'+P.words.length:'全'+P.words.length+'問')+'</small></button>'+
+      '</div></section>';
+  } else {
+    h+='<section class="panel empty"><span class="plate"><span>今週のシーズン</span></span>'+
+      '<h1>今週の20語がまだ入っていません</h1>'+
+      '<p>おうちの人に、コアマスターの漢字ページから今週の20語を入れてもらおう。それまでは下のリベンジ・ゾーンで戦えるよ。</p>'+
+      '<button class="btn ghost" data-act="howto">おうちの人へ：入れかた</button></section>';
+  }
+  var totalB=0, defB=0;
+  var isl=BACKLOG.map(function(I){
+    var P=islandPool(I), d=P.bosses.filter(function(b){ return P.rec.bosses[b.ch]; }).length;
+    totalB+=P.bosses.length; defB+=d;
+    var chars=P.bosses.map(function(b){ return P.rec.bosses[b.ch]?b.ch:'？'; }).join('');
+    return '<button class="isl '+(d===P.bosses.length?'clear':'')+'" data-act="island" data-kai="'+I.kai+'">'+
+      '<div class="in">第'+I.kai+'回</div><div class="id">'+md(I.date)+' のテスト</div><div class="ik">'+esc(chars)+'</div>'+
+      '<div class="ibar"><i style="width:'+(100*d/P.bosses.length)+'%"></i></div><div class="ic">'+d+' / '+P.bosses.length+' 字 撃破</div></button>';
+  }).join('');
+  h+='<section class="sec"><div class="sec-h"><h2>リベンジ・ゾーン</h2><p>これまでの週テストで書けなかった '+totalB+' 字。島ごとに倒していこう（'+defB+' 字 撃破）</p></div>'+
+     '<div class="islands">'+isl+'</div></section>';
+  var cards=countCards(), okN=state.log.reduce(function(a,l){ return a+(l.m==='study'?0:l.ok); },0);
+  h+='<div class="stats"><div class="stat"><b>'+cards+'</b><span>集めたカード</span></div><div class="stat"><b>'+okN+'</b><span>書けた回数（通算）</span></div>'+
+     '<div class="stat"><b>'+streak()+'</b><span>連続ログイン日数</span></div><div class="stat"><b>'+state.xp+'</b><span>XP</span></div></div>';
+  return h;
+}
+function countCards(){
+  var n=0;
+  Object.keys(state.weeks).forEach(function(k){ n+=Object.keys(state.weeks[k].rec.bosses).length; });
+  Object.keys(state.rev).forEach(function(k){ n+=Object.keys(state.rev[k].bosses).length; });
+  return n;
+}
+function islandSheet(kai){
+  var I=BACKLOG.find(function(x){ return x.kai===kai; }); if(!I) return;
+  var P=islandPool(I), rest=P.words.filter(function(o){ return !isClear(P.rec,o.w); }).length;
+  var m=modal('<div class="sheet"><span class="plate rv"><span>リベンジ・ゾーン</span></span><h2 style="margin-top:8px">第'+kai+'回アイランド</h2>'+
+    '<p class="sd">'+md(I.date)+'のテストで書けなかった '+P.bosses.length+' 字 ・ '+P.words.length+' 語</p>'+
+    '<div class="bosses">'+P.bosses.map(function(b){ return bossHTML(P.rec,b,false); }).join('')+'</div>'+
+    '<div class="mrow"><button class="btn" data-act="play" data-pool="k'+kai+'" data-mode="study">作戦会議</button>'+
+    '<button class="btn go" data-act="play" data-pool="k'+kai+'" data-mode="battle" '+(rest?'':'disabled')+'>バトル（のこり '+rest+' 語）</button></div>'+
+    '<p style="margin:16px 0 0"><button class="btn ghost" data-v="close">とじる</button></p></div>');
+  m.addEventListener('click',function(e){ if(e.target===m || e.target.closest('[data-v="close"]') || e.target.closest('[data-act="play"]')) m.remove(); });
+}
+
+/* ---------- locker ---------- */
+function lockerHTML(){
+  var groups=[], counts={legend:0,epic:0,rare:0,unc:0,com:0}, total=0, got=0;
+  weeksSorted().slice().reverse().forEach(function(wk){
+    var P=weekPool(wk);
+    groups.push({t:'第'+wk.kai+'回（'+md(wk.date)+'）',items:P.bosses.map(function(b){ return {ch:b.ch,d:wk.rec.bosses[b.ch],pool:wk.id}; })});
+  });
+  BACKLOG.forEach(function(I){
+    var P=islandPool(I);
+    groups.push({t:'リベンジ：第'+I.kai+'回アイランド',items:P.bosses.map(function(b){ return {ch:b.ch,d:P.rec.bosses[b.ch],pool:P.id}; })});
+  });
+  var body=groups.map(function(g){
+    return '<div class="ggroup"><h3>'+esc(g.t)+'</h3><div class="cards">'+g.items.map(function(it){
+      total++; if(it.d){ got++; counts[it.d.r]++; return cardHTML(it.ch,it.d.r,'','data-act="card" data-pool="'+it.pool+'" data-ch="'+esc(it.ch)+'"'); }
+      return '<div class="card locked"><span class="k">？</span></div>';
+    }).join('')+'</div></div>';
+  }).join('');
+  var leg=RAR_ORDER.map(function(r){ return '<span style="--rc:var(--'+r+')">'+RAR[r]+'<b>'+counts[r]+'</b></span>'; }).join('');
+  return '<section class="panel"><div class="sec-h" style="margin:0"><h2>ロッカー</h2><p>'+got+' / '+total+' 枚</p></div>'+
+    '<p class="pnote" style="margin:8px 0 14px">ボスの字を倒すとカードになる。<b>早いバトルで倒すほどレア</b>：1回目のバトルで倒せばレジェンド、2回目はエピック、3回目はレア…。</p>'+
+    '<div class="legendrow">'+leg+'</div>'+body+'</section>';
+}
+function poolById(id){
+  if(state.weeks[id]) return weekPool(state.weeks[id]);
+  var I=BACKLOG.find(function(x){ return 'k'+x.kai===id; }); return I?islandPool(I):null;
+}
+function cardSheet(pid,ch){
+  var P=poolById(pid); if(!P) return; var b=P.bosses.find(function(x){ return x.ch===ch; }), d=P.rec.bosses[ch]; if(!b||!d) return;
+  var rows=b.words.map(function(w){ var o=wordObj(P,w); var rt=P.rates&&P.rates[w];
+    return '<div><span class="ww">'+esc(w)+'</span><span class="wr">'+esc(o?o.r:'')+(rt?' ・ クラスの'+Math.round(rt)+'%が書ける':'')+'</span></div>'; }).join('');
+  var m=modal('<div class="dcards" style="margin-bottom:10px">'+cardHTML(ch,d.r)+'</div><p class="dw">'+RAR[d.r]+' ・ '+esc(P.title)+' ・ '+md(d.d)+' 撃破</p>'+
+    '<div class="wlist">'+rows+'</div><button class="btn ghost" data-v="close">とじる</button>');
+  m.addEventListener('click',function(e){ if(e.target===m || e.target.closest('[data-v]')) m.remove(); });
+}
+
+/* ---------- parent ---------- */
+function nextSat(){ var d=parseD(today()); var add=(6-d.getDay()+7)%7; if(add===0) add=7; d.setDate(d.getDate()+add); return fmt(d); }
+function guessKai(date){ return 29+Math.round(diffDays('2026-09-12',date)/7); }
+function textbook(kai){ var s=kai-((kai-1)%4); return 'コアマスター小5 第'+s+'回〜第'+(s+3)+'回 の p.'+[50,14,26,38][kai%4]; }
+function parseWords(txt){
+  var out=[], errs=[];
+  txt.split(/\n/).forEach(function(line,i){
+    line=line.trim(); if(!line) return;
+    var parts=line.split(/[\s,、，　]+/);
+    var w=parts.shift(), r=parts.shift(), c=parts.join(' ');
+    if(!w || !KJ(w).length){ errs.push((i+1)+'行目：漢字の語が見つかりません'); return; }
+    if(!r || !/^[ぁ-ゟーー]+$/.test(r)){ errs.push((i+1)+'行目「'+w+'」：読みをひらがなで入れてください'); return; }
+    if(!c) c='{}';
+    else if(c.indexOf('{}')<0){ c = c.indexOf(r)>=0 ? c.replace(r,'{}') : '{}（'+c+'）'; }
+    out.push({w:w,r:r,c:c});
+  });
+  return {words:out,errs:errs};
+}
+function parentHTML(){
+  var d=nextSat(), k=guessKai(d);
+  var rows=weeksSorted().slice().reverse().map(function(wk){
+    var r=wk.rec, battles=state.log.filter(function(l){ return l.p===wk.id && l.m==='battle'; }).length;
+    return '<tr><td>第'+wk.kai+'回</td><td>'+md(wk.date)+'</td><td>'+(r.studied?'済':'—')+'</td><td>'+battles+'回</td>'+
+      '<td>'+(r.storm.best==null?'—':r.storm.best+' / '+wk.words.length)+'</td>'+
+      '<td><input type="number" min="0" max="20" inputmode="numeric" id="real-'+esc(wk.id)+'" data-real="'+esc(wk.id)+'" value="'+(r.real==null?'':r.real)+'" placeholder="—"> / 20</td>'+
+      '<td><button class="delw" data-act="delweek" data-id="'+esc(wk.id)+'">削除</button></td></tr>';
+  }).join('');
+  var revDef=0, revTot=0; BACKLOG.forEach(function(I){ var P=islandPool(I); revTot+=P.bosses.length; revDef+=P.bosses.filter(function(b){ return P.rec.bosses[b.ch]; }).length; });
+  return '<section class="panel"><div class="sec-h" style="margin:0 0 6px"><h2>おうちの人</h2><p>この画面は長押しで開きます</p></div>'+
+    '<p class="pnote">週テストの漢字20問は、毎回<b>'+esc(textbook(k))+'</b> のように範囲ページが決まっています（p.14→26→38→50 の順ぐり）。そのページの20語を下に入れると、今週のシーズンが始まります。</p></section>'+
+    '<section class="panel sec"><div class="sec-h" style="margin:0 0 10px"><h2 style="font-size:19px">今週の20語を入れる</h2></div><div class="form">'+
+      '<div class="frow"><label>回<input type="number" id="f-kai" inputmode="numeric" value="'+k+'"></label><label>本番の日（土曜）<input type="date" id="f-date" value="'+d+'"></label></div>'+
+      '<p class="pnote" id="f-book">範囲：'+esc(textbook(k))+'</p>'+
+      '<label>1行に1語：<code>漢字 よみ 例文</code>（例文の中の読みの場所に <code>{}</code>。例文は省略可）'+
+        '<textarea id="f-words" placeholder="木造 もくぞう {}の家&#10;造る つくる 船を{}&#10;改造 かいぞう 自転車を{}する"></textarea></label>'+
+      '<div class="preview" id="f-prev">入力すると、ここに中心漢字（ボス）が表示されます。</div>'+
+      '<div><button class="btn go" data-act="saveweek">この20語でシーズン開始</button></div>'+
+    '</div></section>'+
+    '<section class="panel sec"><div class="sec-h" style="margin:0 0 10px"><h2 style="font-size:19px">記録</h2><p>本番の漢字の点数を入れると、練習の結果と並びます</p></div>'+
+      (rows?'<div class="tscroll"><table><thead><tr><th>回</th><th>本番</th><th>作戦会議</th><th>バトル</th><th>ストーム最高</th><th>本番の漢字</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+          :'<p class="pnote">まだシーズンがありません。</p>')+
+      '<p class="pnote" style="margin-top:12px">リベンジ・ゾーン：<b>'+revDef+' / '+revTot+' 字</b> 撃破。月1回の通し確認にどうぞ。</p>'+
+      '<div class="mrow" style="justify-content:flex-start;margin-top:14px"><button class="btn ghost" data-act="export">記録を書き出す</button>'+
+      '<label class="btn ghost" style="font-size:16px;color:var(--text)">書き出した記録を読み込む<input type="file" id="f-import" accept=".json,application/json" style="display:none"></label></div>'+
+      '<p class="pnote" style="margin-top:8px">'+(syncMode==='on'?'記録はこのページのデータとして保存され、同じアカウントで開いた別の端末（iPhoneなど）にも反映されます。':'記録はこのiPadの中にだけ保存されます。月に1回くらい「記録を書き出す」で、ファイルアプリやメールに控えを残しておくと安心です。')+'</p>'+
+    '</section>';
+}
+function bindParent(){
+  var ta=$('#f-words'), kai=$('#f-kai'), prev=$('#f-prev'), book=$('#f-book');
+  if(!ta) return;
+  function upd(){
+    var k=parseInt(kai.value,10); if(k>0) book.textContent='範囲：'+textbook(k);
+    var p=parseWords(ta.value);
+    if(!ta.value.trim()){ prev.innerHTML='入力すると、ここに中心漢字（ボス）が表示されます。'; return; }
+    var b=computeBosses(p.words);
+    prev.innerHTML=p.words.length+' 語 → ボス（中心漢字）'+b.length+' 体：<span class="k">'+esc(b.map(function(x){ return x.ch; }).join(' '))+'</span>'+
+      (p.errs.length?'<br><span class="err">'+p.errs.map(esc).join('<br>')+'</span>':'');
+  }
+  ta.addEventListener('input',upd); kai.addEventListener('input',upd);
+  var imp=$('#f-import');
+  if(imp) imp.addEventListener('change',function(){
+    var f=imp.files&&imp.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      var d=null; try{ d=JSON.parse(rd.result); }catch(e){}
+      imp.value='';
+      if(!d || d.v!==1 || typeof d.weeks!=='object'){ toast('カンジ・ロワイヤルの記録ファイルではないようです'); return; }
+      ask('いまの記録を、このファイルの内容で置きかえますか？','置きかえる').then(function(y){
+        if(!y) return; state=d; commit(); render(); toast('記録を読み込みました');
+      });
+    };
+    rd.readAsText(f);
+  });
+  document.querySelectorAll('[data-real]').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var wk=state.weeks[inp.dataset.real]; if(!wk) return;
+      var v=inp.value===''?null:Math.max(0,Math.min(20,parseInt(inp.value,10)||0));
+      wk.rec.real=v; commit(); toast('本番の点数を記録しました');
+    });
+  });
+}
+function saveWeek(){
+  var k=parseInt($('#f-kai').value,10), d=$('#f-date').value, p=parseWords($('#f-words').value);
+  if(!(k>0)){ toast('回を入れてください'); return; }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ toast('本番の日を入れてください'); return; }
+  if(p.errs.length){ toast('入力にまちがいがあります（下の赤字）'); return; }
+  if(p.words.length<2){ toast('語を2つ以上入れてください'); return; }
+  var id='w'+d, old=state.weeks[id];
+  state.weeks[id]={id:id,kai:k,date:d,words:p.words,rec:old?old.rec:newRec()};
+  commit(); toast('第'+k+'回のシーズンを開始しました'); view='lobby'; render();
+}
+
+/* ---------- handwriting pad ---------- */
+var penSeen=false;
+function Pad(host,n){
+  host.innerHTML='<div class="pad" style="--n:'+n+'"><div class="cells">'+Array.from({length:n},function(){ return '<div class="cell"><span class="g"></span></div>'; }).join('')+'</div><canvas aria-label="ここに書く"></canvas></div>';
+  var pad=host.firstElementChild, cv=pad.querySelector('canvas'), ctx=cv.getContext('2d');
+  var W=1,H=1,strokes=[],cur=null,pid=null, api={onchange:null};
+  function fit(){
+    var r=pad.getBoundingClientRect(), dpr=Math.min(3,window.devicePixelRatio||1);
+    W=Math.max(1,r.width); H=Math.max(1,r.height);
+    cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); redraw();
+  }
+  function lw(f){ return H*0.052*(0.5+0.9*f); }
+  function mid(a,b){ return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,f:(a.f+b.f)/2}; }
+  function drawStroke(s){
+    var p=s.p; if(!p.length) return;
+    ctx.strokeStyle='#1a1a1a'; ctx.fillStyle='#1a1a1a'; ctx.lineCap='round'; ctx.lineJoin='round';
+    if(p.length===1){ ctx.beginPath(); ctx.arc(p[0].x*W,p[0].y*H,lw(p[0].f)/2,0,Math.PI*2); ctx.fill(); return; }
+    for(var i=1;i<p.length;i++){
+      var a=p[i-1], b=p[i], s0=i>1?mid(p[i-2],a):a, s1=mid(a,b);
+      ctx.beginPath(); ctx.lineWidth=lw(a.f); ctx.moveTo(s0.x*W,s0.y*H); ctx.quadraticCurveTo(a.x*W,a.y*H,s1.x*W,s1.y*H); ctx.stroke();
+    }
+    var L=p[p.length-1], M=mid(p[p.length-2],L);
+    ctx.beginPath(); ctx.lineWidth=lw(L.f); ctx.moveTo(M.x*W,M.y*H); ctx.lineTo(L.x*W,L.y*H); ctx.stroke();
+  }
+  function redraw(){ ctx.clearRect(0,0,W,H); strokes.forEach(drawStroke); if(cur) drawStroke(cur); }
+  function pt(e){ var r=cv.getBoundingClientRect(); var f=e.pointerType==='pen'?(e.pressure||.5):.55; return {x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height,f:f}; }
+  cv.addEventListener('pointerdown',function(e){
+    if(e.pointerType==='pen') penSeen=true;
+    if(e.pointerType==='touch' && penSeen) return;   // palm rejection once a Pencil has been used
+    if(cur) return; e.preventDefault(); pid=e.pointerId;
+    try{ cv.setPointerCapture(pid); }catch(_){}
+    cur={p:[pt(e)]}; redraw();
+  });
+  cv.addEventListener('pointermove',function(e){
+    if(!cur || e.pointerId!==pid) return; e.preventDefault();
+    var evs=e.getCoalescedEvents?e.getCoalescedEvents():[]; if(!evs.length) evs=[e];
+    evs.forEach(function(ev){ cur.p.push(pt(ev)); }); redraw();
+  });
+  function end(e){ if(!cur || e.pointerId!==pid) return; strokes.push(cur); cur=null; pid=null; redraw(); if(api.onchange) api.onchange(); }
+  cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
+  cv.addEventListener('touchstart',function(e){ e.preventDefault(); },{passive:false});
+  if(window.ResizeObserver) new ResizeObserver(fit).observe(pad); else setTimeout(fit,0);
+  fit();
+  api.clear=function(){ strokes=[]; cur=null; redraw(); if(api.onchange) api.onchange(); };
+  api.undo=function(){ strokes.pop(); redraw(); if(api.onchange) api.onchange(); };
+  api.empty=function(){ return strokes.length===0; };
+  api.guide=function(text,cls){ var ch=Array.from(text); pad.querySelectorAll('.g').forEach(function(g,i){ g.textContent=ch[i]||''; g.className='g'+(cls?' '+cls:''); }); };
+  return api;
+}
+function staticRow(w){
+  var ch=Array.from(w);
+  return '<div class="pad" style="--n:'+ch.length+'"><div class="cells">'+ch.map(function(c){ return '<div class="cell"><span class="g">'+esc(c)+'</span></div>'; }).join('')+'</div></div>';
+}
+
+/* ---------- session ---------- */
+function startSession(pid,mode){
+  var P=poolById(pid); if(!P) return;
+  if(P.kind==='rev'){ if(!state.rev[P.id]) state.rev[P.id]=newRec(); P.rec=state.rev[P.id]; }
+  var list;
+  if(mode==='study') list=P.words.slice();
+  else if(mode==='battle') list=shuffle(P.words.filter(function(o){ return !isClear(P.rec,o.w); }));
+  else list=shuffle(P.words.slice());
+  if(!list.length){ toast('のこりの敵はいない！'); return; }
+  if(mode==='battle') P.rec.sessions=(P.rec.sessions||0)+1;
+  if(mode==='storm') P.rec.storm.tries++;
+  S={pool:P,mode:mode,list:list,i:0,ok:0,ng:0,missed:[],drops:[],xp:0,drill:0,overlay:false,
+     phase:mode==='study'?'study':'write',need:mode==='storm'?Math.ceil(list.length*0.9):0};
+  commit(); window.scrollTo(0,0); renderSession();
+}
+var LABEL={study:'作戦会議',battle:'バトル',storm:'ファイナル・ストーム'};
+function promptHTML(o){
+  var parts=o.c.split('{}');
+  return parts.map(esc).join('<span class="yomi">'+esc(o.r)+'</span>');
+}
+function stormHTML(){
+  var allowed=S.list.length-S.need, left=allowed-S.ng, frac=left<0?0:(left+1)/(allowed+1);
+  var r=6+34*frac;
+  return '<div class="stormbox"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="38" fill="#3a1d8a"/>'+
+    '<circle cx="40" cy="40" r="38" fill="none" stroke="#8b5cff" stroke-width="3" stroke-dasharray="4 5"/>'+
+    '<circle cx="40" cy="40" r="'+r.toFixed(1)+'" fill="'+(left<0?'#ff6b5b':'#7ef0c6')+'" opacity=".9"/></svg>'+
+    '<div class="sl">'+(left>=0?'あと '+left+' ミスまでセーフ':'ストームの外！でも最後まで書こう')+'<small>'+S.need+'問 書けたらビクトリー</small></div>'+
+    '<div class="sc">'+S.ok+'<small> / '+S.need+'</small></div></div>';
+}
+function renderSession(){
+  document.body.classList.add('in-session');
+  var v=$('#view');
+  if(S.phase==='done'){ v.innerHTML=resultHTML(); return; }
+  var o=S.list[S.i], P=S.pool, n=S.list.length;
+  var foes=P.bosses.filter(function(b){ return b.words.indexOf(o.w)>=0; });
+  var foeLabel = S.mode==='study' ? '<b>この字をおぼえよう</b><br>'+esc(P.title) : '<b>ボスの正体は？</b><br>書けたらダメージ';
+  v.innerHTML='<div class="sess '+S.mode+'">'+
+    '<div class="sbar"><button class="quit" data-act="quit" aria-label="やめる">×</button>'+
+      '<span class="plate '+(S.mode==='storm'?'st':S.pool.kind==='rev'?'rv':'')+'"><span>'+LABEL[S.mode]+'</span></span>'+
+      '<div class="pbar"><i style="width:'+(100*S.i/n)+'%"></i></div><div class="prog">'+(S.i+1)+' / '+n+'</div></div>'+
+    (S.mode==='storm'?stormHTML():'')+
+    '<div class="arena"><div class="foe">'+foes.map(function(b){ return bossHTML(P.rec,b,S.mode==='study'); }).join('')+'</div><div class="foe-l">'+foeLabel+'</div></div>'+
+    '<div class="prompt">'+promptHTML(o)+'</div>'+
+    '<p class="hint" id="hint"></p>'+
+    '<div class="pad-wrap" id="padHost"></div>'+
+    '<div id="ansHost"></div>'+
+    '<div class="ctrl" id="ctrl"></div></div>';
+  S.pad=Pad($('#padHost'),Array.from(o.w).length);
+  S.pad.onchange=refreshBtns;
+  setPhaseUI();
+}
+function setPhaseUI(){
+  var o=S.list[S.i], ph=S.phase, hint={
+    write:'赤いわくの読みを、<b>漢字で</b>書こう。送りがなもマスに書く。',
+    study:'うすい字をなぞって書こう。<b>この日だけは見て書いてOK</b>。',
+    judge:'下の正解と見くらべて、<b>自分で</b>丸つけ。トメ・ハネ・送りがなまで合っていたら○。',
+    drill:'特訓！ 正解を見ながら <b>'+(S.drill+1)+' / 3</b> 回目。'
+  }[ph];
+  $('#hint').innerHTML=hint;
+  if(ph==='study'||ph==='drill') S.pad.guide(o.w,'guide');
+  else if(ph==='judge' && S.overlay) S.pad.guide(o.w,'over');
+  else S.pad.guide('','');
+  $('#ansHost').innerHTML = ph==='judge' ? '<div class="ans"><p class="ans-l">正解</p><div class="pad-wrap">'+staticRow(o.w)+'</div></div>' : '';
+  var edit='<button class="btn ghost" data-act="undo">1つもどす</button><button class="btn ghost" data-act="clear">ぜんぶけす</button>';
+  var c;
+  if(ph==='write') c=edit+'<button class="btn go wide" data-act="check" data-need>こたえ合わせ</button>';
+  else if(ph==='study') c=edit+'<button class="btn go wide" data-act="studynext" data-need>書けた！ つぎへ</button>';
+  else if(ph==='drill') c=edit+'<button class="btn go wide" data-act="drillnext" data-need><span class="drillc">書けた '+(S.drill+1)+'/3</span></button>';
+  else c='<button class="btn ghost" data-act="overlay">'+(S.overlay?'かさねない':'正解をかさねる')+'</button>'+
+         '<button class="btn ng wide" data-act="ng">× まちがえた</button><button class="btn ok wide" data-act="ok">○ 書けた！</button>';
+  $('#ctrl').innerHTML=c; refreshBtns();
+}
+function refreshBtns(){ var b=document.querySelector('[data-need]'); if(b) b.disabled=S.pad.empty(); }
+function judge(ok){
+  var o=S.list[S.i], w=o.w, rec=S.pool.rec;
+  var st=rec.st[w] || (rec.st[w]={s:'new',n:0}); st.n++;
+  if(ok){
+    S.ok++; gain(10); if(st.s!=='clear'){ st.s='clear'; st.d=today(); }
+    var defeated=[];
+    S.pool.bosses.forEach(function(b){
+      if(b.words.indexOf(w)<0 || rec.bosses[b.ch]) return;
+      if(b.words.every(function(x){ return isClear(rec,x); })){
+        var r=RAR_ORDER[Math.min(Math.max(rec.sessions||1,1),5)-1];
+        rec.bosses[b.ch]={r:r,d:today()}; defeated.push({ch:b.ch,r:r,words:b.words}); gain(40);
+      }
+    });
+    commit();
+    if(defeated.length){ S.drops=S.drops.concat(defeated); sfx('drop'); showDrop(defeated,next); } else { sfx('ok'); next(); }
+  } else {
+    S.ng++; S.missed.push(w); if(st.s!=='clear') st.s='miss'; sfx('ng'); commit();
+    if(S.mode==='battle'){ S.phase='drill'; S.drill=0; S.pad.clear(); setPhaseUI(); } else next();
+  }
+}
+function showDrop(list,cb){
+  var m=modal('<div class="drop"><h2>ボス撃破！</h2><p>正体は…</p><div class="dcards">'+list.map(function(d){ return cardHTML(d.ch,d.r); }).join('')+'</div>'+
+    list.map(function(d){ return '<p class="dw">'+RAR[d.r]+' ・ '+d.words.map(esc).join('・')+'</p>'; }).join('')+
+    '<p style="margin-top:14px"><button class="btn go big" data-v="go">つぎへ</button></p></div>');
+  m.addEventListener('click',function(e){ if(e.target.closest('[data-v]')){ m.remove(); cb(); } });
+}
+function next(){
+  S.i++;
+  if(S.i>=S.list.length){ finish(); return; }
+  S.phase=S.mode==='study'?'study':'write'; S.overlay=false; renderSession(); window.scrollTo(0,0);
+}
+function finish(){
+  var rec=S.pool.rec, win=false;
+  if(S.mode==='study'){ rec.studied=true; gain(30); }
+  if(S.mode==='storm'){
+    win=S.ok>=S.need;
+    if(rec.storm.best==null || S.ok>rec.storm.best) rec.storm.best=S.ok;
+    if(win){ rec.storm.won=true; gain(150); }
+  }
+  logSession();
+  S.phase='done'; S.win=win; commit(); renderSession();
+  if(win){ sfx('win'); confetti(); } else sfx('end');
+}
+function logSession(){
+  state.log.push({d:today(),m:S.mode,p:S.pool.id,ok:S.ok,ng:S.ng});
+  if(state.log.length>500) state.log=state.log.slice(-500);
+}
+function resultHTML(){
+  var h, cls='', sub;
+  if(S.mode==='storm'){ cls=S.win?'win':'lose'; h=S.win?'ビクトリー！':'ストームに飲まれた…'; sub=S.win?S.list.length+'問中 '+S.ok+'問。本番もこの調子！':'あと '+(S.need-S.ok)+'問。まちがえた語をもう一度見てから再挑戦しよう。'; }
+  else if(S.mode==='study'){ h='作戦会議おわり！'; sub='この字たちが今週のボス。あしたのバトルで倒そう。'; }
+  else { h='バトル終了！'; sub=S.missed.length?'まちがえた語は、つぎのバトルでまた出てくるよ。':'全問書けた！ パーフェクト！'; }
+  var drops=S.drops.length?'<p class="ans-l">手に入れたカード</p><div class="dcards">'+S.drops.map(function(d){ return cardHTML(d.ch,d.r); }).join('')+'</div>':'';
+  var miss=S.missed.length?'<p class="ans-l">まちがえた語</p><div class="chips">'+uniq(S.missed).map(function(w){ var o=wordObj(S.pool,w); return '<span class="chip">'+esc(w)+'<small>'+esc(o?o.r:'')+'</small></span>'; }).join('')+'</div>':'';
+  var stats=S.mode==='study'?'<div><b>'+S.list.length+'</b><span>書いた語</span></div>':'<div><b>'+S.ok+'</b><span>○ 書けた</span></div><div><b>'+S.ng+'</b><span>× まちがえた</span></div>';
+  var again=S.mode==='storm'&&!S.win?'<button class="btn storm" data-act="play" data-pool="'+S.pool.id+'" data-mode="storm">もう一度ストーム</button>':'';
+  return '<div class="result '+cls+'"><span class="plate '+(S.mode==='storm'?'st':'')+'"><span>'+LABEL[S.mode]+'</span></span><h1>'+h+'</h1><p class="rsub">'+sub+'</p>'+
+    '<div class="rstats">'+stats+'<div><b>+'+S.xp+'</b><span>XP</span></div></div>'+drops+miss+
+    '<div class="mrow">'+again+'<button class="btn go big" data-act="lobby">ロビーへ</button></div></div>';
+}
+function endSession(){
+  S=null; document.body.classList.remove('in-session');
+  if(pendingRemote && (pendingRemote.updatedAt||0)>(state.updatedAt||0)){ state=pendingRemote; saveLocal(); }
+  pendingRemote=null; view='lobby'; render(); window.scrollTo(0,0);
+}
+
+/* ---------- backup ---------- */
+function exportData(){
+  var name='kanji-royale-'+today()+'.json';
+  var blob=new Blob([JSON.stringify(state)],{type:'application/json'});
+  var file=null; try{ file=new File([blob],name,{type:'application/json'}); }catch(e){}
+  if(file && navigator.canShare && navigator.canShare({files:[file]})){
+    navigator.share({files:[file],title:name}).catch(function(){});
+    return;
+  }
+  var url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); },4000);
+}
+
+/* ---------- render / events ---------- */
+function render(){
+  if(S){ renderSession(); return; }
+  document.body.classList.remove('in-session');
+  hud(); tabs();
+  $('#view').innerHTML = view==='locker'?lockerHTML():view==='parent'?parentHTML():lobbyHTML();
+  if(view==='parent') bindParent();
+}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]'); if(!b || b.disabled) return;
+  var a=b.dataset.act;
+  if(a==='tab'){ view=b.dataset.v; render(); window.scrollTo(0,0); }
+  else if(a==='mute'){ mute=!mute; try{ localStorage.setItem(LSM,mute?'1':'0'); }catch(_){} hud(); }
+  else if(a==='play'){ var pid=b.dataset.pool==='week'?(currentWeek()||{}).id:b.dataset.pool; if(S && S.phase==='done') S=null; if(pid) startSession(pid,b.dataset.mode); }
+  else if(a==='island'){ islandSheet(parseInt(b.dataset.kai,10)); }
+  else if(a==='card'){ cardSheet(b.dataset.pool,b.dataset.ch); }
+  else if(a==='howto'){ var m=modal('<p class="mq">おうちの人へ</p><p class="pnote" style="text-align:left">画面下の「おうちの人」を<b>長押し</b>すると入力画面が開きます。コアマスターの今週の漢字ページ（p.14 / 26 / 38 / 50 のどれか）から20語を、<code>漢字 よみ 例文</code> の形で1行ずつ入れてください。</p><p style="margin-top:16px"><button class="btn go" data-v="1">わかった</button></p>'); m.addEventListener('click',function(ev){ if(ev.target.closest('[data-v]')||ev.target===m) m.remove(); }); }
+  else if(a==='saveweek'){ saveWeek(); }
+  else if(a==='export'){ exportData(); }
+  else if(a==='delweek'){ var id=b.dataset.id; ask('この週の記録を削除しますか？ 取り消せません。','削除する').then(function(y){ if(y){ delete state.weeks[id]; commit(); render(); } }); }
+  else if(a==='lobby'){ endSession(); }
+  else if(a==='quit'){
+    ask('バトルをやめる？ ここまでの結果は残るよ。','やめる','つづける').then(function(y){
+      if(!y) return; if(S.ok+S.ng>0 || S.mode==='study' && S.i>0){ logSession(); commit(); } endSession();
+    });
+  }
+  else if(!S) return;
+  else if(a==='undo') S.pad.undo();
+  else if(a==='clear') S.pad.clear();
+  else if(a==='check'){ S.phase='judge'; sfx('flip'); setPhaseUI(); }
+  else if(a==='overlay'){ S.overlay=!S.overlay; setPhaseUI(); }
+  else if(a==='ok') judge(true);
+  else if(a==='ng') judge(false);
+  else if(a==='studynext'){ next(); }
+  else if(a==='drillnext'){ S.drill++; if(S.drill>=3){ gain(5); commit(); next(); } else { S.pad.clear(); setPhaseUI(); } }
+});
+
+render();
+initSync();
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+})();
+</script>
+</body>
+</html>
