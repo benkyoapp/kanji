@@ -323,6 +323,22 @@ td input{width:70px;margin:0;padding:6px 8px}
 .rvb span{font-size:13px;font-weight:800}
 .rvb.all{border-color:var(--go)} .rvb.all b{color:var(--go)}
 .rvb.ok{border-color:rgba(255,255,255,.18);opacity:.55} .rvb.ok b{color:var(--go)}
+.tpanel{border-color:rgba(122,209,255,.45)}
+.tups{display:flex;gap:10px;flex-wrap:wrap}
+.tup{flex:1 1 180px;background:var(--deep);border:2px solid rgba(122,209,255,.5);border-radius:16px;padding:14px 16px;text-align:left;box-shadow:0 5px 0 #10243a;color:var(--text)}
+.tup:active{transform:translateY(3px);box-shadow:0 2px 0 #10243a}
+.tup b{display:block;font-family:var(--display);font-weight:400;font-size:30px;line-height:1.15}
+.tup span{font-size:13px;font-weight:800;opacity:.8}
+.tup.done{opacity:.5;border-color:rgba(255,255,255,.16)}
+.tup.done b::after{content:' ✓';color:var(--go)}
+.tno{margin:0;font-weight:800;opacity:.85}
+.tdays{display:flex;gap:6px;margin-top:14px}
+.td{flex:1;text-align:center;border-radius:10px;padding:6px 2px;background:rgba(255,255,255,.05)}
+.td i{display:block;font-style:normal;font-size:11px;font-weight:800;opacity:.65}
+.td s{display:block;text-decoration:none;font-size:15px;font-weight:800;margin-top:2px}
+.td.rest s{font-size:11px;opacity:.7}
+.td.ok{background:rgba(58,214,143,.18)} .td.ok s{color:var(--go)}
+.td.now{outline:2px solid var(--sky)}
 .expl p,.expl-s{white-space:pre-line}
 .qtbl{border-collapse:collapse;margin:12px 0 2px;font-size:16px;font-weight:700;background:#fff;color:#222}
 .qtbl th,.qtbl td{border:1px solid #bbb;padding:4px 10px;text-align:center;min-width:44px;color:#222}
@@ -539,7 +555,7 @@ function cardHTML(ch,r,from,act){
 /* ---------- lobby ---------- */
 var PLAN=[{o:-6,m:'study',t:'作戦会議'},{o:-4,m:'battle',t:'バトル'},{o:-3,m:'battle',t:'バトル'},{o:-2,m:'battle',t:'バトル'},{o:-1,m:'storm',t:'ファイナル'},{o:0,m:'real',t:'本番'}];
 function lobbyHTML(){
-  var wk=currentWeek(), h=m5PanelHTML()+reviewPanelHTML()+mPanelHTML();
+  var wk=currentWeek(), h=menuPanelHTML()+m5PanelHTML()+reviewPanelHTML()+mPanelHTML();
   if(wk){
     var P=weekPool(wk), t=today(), left=diffDays(t,wk.date), rest=P.words.filter(function(o){ return !isClear(wk.rec,o.w); }).length;
     var todayMode=null;
@@ -575,6 +591,7 @@ function lobbyHTML(){
       '<div class="in">第'+I.kai+'回</div><div class="id">'+md(I.date)+' のテスト</div><div class="ik">'+esc(chars)+'</div>'+
       '<div class="ibar"><i style="width:'+(100*d/P.bosses.length)+'%"></i></div><div class="ic">'+d+' / '+P.bosses.length+' 字 撃破</div></button>';
   }).join('');
+  h+=zonePanelHTML();
   h+='<section class="sec"><div class="sec-h"><h2>リベンジ・ゾーン</h2><p>これまでの週テストで書けなかった '+totalB+' 字。島ごとに倒していこう（'+defB+' 字 撃破）</p></div>'+
      '<div class="islands">'+isl+'</div></section>';
   var cards=countCards(), okN=state.log.reduce(function(a,l){ return a+(l.m==='study'?0:l.ok); },0);
@@ -894,7 +911,7 @@ function finish(){
     if(rec.storm.best==null || S.ok>rec.storm.best) rec.storm.best=S.ok;
     if(win){ rec.storm.won=true; gain(150); }
   }
-  logSession();
+  logSession(); markDaily('k');
   S.phase='done'; S.win=win; commit(); renderSession();
   if(win){ sfx('win'); confetti(); } else sfx('end');
 }
@@ -1776,34 +1793,114 @@ function materialize(i){
   if(o.t==='c') o.ch=shuffle(o.ch);
   return o;
 }
-function buildRun(z){
-  var rec=mrecRO(z), bank=zoneBank(z), size=15;
-  var miss=bank.filter(function(i){ return rec.st[i.id]==='miss'; });
-  var fresh=bank.filter(function(i){ return !rec.st[i.id]; });
-  var done=bank.filter(function(i){ return rec.st[i.id]==='clear'; });
-  var pick=shuffle(miss).concat(shuffle(fresh));
-  if(pick.length<size) pick=pick.concat(shuffle(done));
+function buildRun(z,size){
+  var rec=mrecRO(z), bank=zoneBank(z), sr=rec.sr||{}, t=today();
+  size=size||15;
+  var miss=[],due=[],fresh=[],rest=[];
+  bank.forEach(function(i){
+    var st=rec.st[i.id], v=sr[i.id];
+    if(st==='miss') miss.push(i);
+    else if(!st) fresh.push(i);
+    else if(v&&v.d&&v.d<=t) due.push(i);
+    else rest.push(i);
+  });
+  var pick=shuffle(miss).concat(shuffle(due)).concat(shuffle(fresh));
+  if(pick.length<size) pick=pick.concat(shuffle(rest));
   return shuffle(pick.slice(0,size)).map(materialize);
 }
 function mZoneStat(z){
-  var rec=mrecRO(z), bank=zoneBank(z), c=0, m=0;
-  bank.forEach(function(i){ if(rec.st[i.id]==='clear') c++; else if(rec.st[i.id]==='miss') m++; });
-  return {c:c,m:m,n:bank.length,runs:rec.runs||0};
+  var rec=mrecRO(z), bank=zoneBank(z), sr=rec.sr||{}, t=today(), c=0, m=0, fix=0, due=0;
+  bank.forEach(function(i){
+    var st=rec.st[i.id], v=sr[i.id];
+    if(st==='miss'){ m++; return; }
+    if(st==='clear'){ c++; if(v&&v.n>=3) fix++; else if(v&&v.d&&v.d<=t) due++; }
+  });
+  return {c:c,m:m,fix:fix,due:due,n:bank.length,runs:rec.runs||0};
 }
-function mPanelHTML(){
-  var t=today(); if(t>MT.date) return '';
-  var left=diffDays(t,MT.date), allRun=true;
+
+/* ================= きょうのつみあげ（毎日のリズム＋間隔をあけた復習） ================= */
+var ZS={kan:'漢',math:'算',jp:'国',sci:'理',soc:'社'};
+var ROT=[['jp','sci','soc'],['jp','sci','math']];   /* [日,月,火] を2週でローテーション */
+var ROTBASE='2026-09-20';                            /* 日曜 */
+function rotIdx(t){ var w=Math.floor(diffDays(ROTBASE,t)/7); return ((w%2)+2)%2; }
+function menuOf(t){
+  var g=parseD(t).getDay();
+  return {g:g, k:g!==6, z:(g<=2)?ROT[rotIdx(t)][g]:null};
+}
+function srI(n){ return n===1?7:n===2?21:60; }
+function dzAll(){ return state.dz||{}; }
+function dzW(){ if(!state.dz) state.dz={}; return state.dz; }
+function markDaily(k){ if(!k) return; var t=today(), r=dzW(); (r[t]=r[t]||{})[k]=1; commit(); }
+function dayOK(t){
+  var m=menuOf(t), d=dzAll()[t]||{};
+  if(m.g===6) return null;                           /* 土（週テスト本番）はカウント外 */
+  return (!m.k||!!d.k) && (!m.z||!!d.z);
+}
+function streakDays(){
+  var t=today(), cur=t, n=0;
+  if(dayOK(t)===false) cur=addDays(t,-1);
+  for(var i=0;i<400;i++){
+    var r=dayOK(cur);
+    if(r===null){ cur=addDays(cur,-1); continue; }
+    if(!r) break;
+    n++; cur=addDays(cur,-1);
+  }
+  return n;
+}
+function weekModeFor(t,wk){
+  if(!wk) return null;
+  var p=PLAN.filter(function(x){ return x.m!=='real' && addDays(wk.date,x.o)===t; })[0];
+  return p?p.m:null;
+}
+function weekDates(t){ var sun=addDays(t,-parseD(t).getDay()); return [0,1,2,3,4,5,6].map(function(i){ return addDays(sun,i); }); }
+function startDaily(z){ startM(z, z==='kan'?8:12, z==='kan'?'k':'z'); }
+
+function menuPanelHTML(){
+  var t=today(), m=menuOf(t), d=dzAll()[t]||{}, wk=currentWeek(), st=streakDays();
+  var btns='';
+  if(m.k){
+    var mode=weekModeFor(t,wk);
+    var act = mode ? 'data-act="play" data-pool="week" data-mode="'+mode+'"' : 'data-act="dplay" data-z="kan"';
+    btns+='<button class="tup'+(d.k?' done':'')+'" '+act+'><b>漢字</b><span>5分'+(mode?' ・ '+LABEL[mode]:'')+'</span></button>';
+  }
+  if(m.z) btns+='<button class="tup'+(d.z?' done':'')+'" data-act="dplay" data-z="'+m.z+'"><b>'+zoneName(m.z)+'</b><span>15分</span></button>';
+  if(!btns) btns='<p class="tno">きょうは週テスト本番。いってらっしゃい！</p>';
+  var ds=weekDates(t).map(function(x){
+    var mm=menuOf(x), dd=dzAll()[x]||{}, ok=dayOK(x), isT=x===t;
+    var lab = mm.g===6 ? 'テスト' : (mm.z?ZS[mm.z]:'漢');
+    return '<div class="td'+(isT?' now':'')+(ok?' ok':'')+(mm.g===6?' rest':'')+'"><i>'+WD[mm.g]+'</i><s>'+lab+'</s></div>';
+  }).join('');
+  return '<section class="panel tpanel"><div class="season-top" style="margin-bottom:12px"><div>'+
+    '<span class="plate st"><span>きょうのつみあげ</span></span>'+
+    '<h1 style="font-size:26px">'+(st?'<b style="color:var(--go)">'+st+'</b> 日つづいているよ':'きょうから はじめよう')+'</h1></div>'+
+    '<div class="when">'+md(t)+'('+wd(t)+')<br>'+(m.z?'塾のない日　20分':m.g===6?'週テストの日':'塾のある日　5分だけ')+'</div></div>'+
+    '<div class="tups">'+btns+'</div><div class="tdays">'+ds+'</div></section>';
+}
+
+function zoneTotal(){ return MZ.reduce(function(a,z){ return a+zoneBank(z.k).length; },0); }
+function zonePanelHTML(){
   var tiles=MZ.map(function(z){
-    var s=mZoneStat(z.k); if(!s.runs) allRun=false;
+    var s=mZoneStat(z.k);
+    var sub='定着 '+s.fix+' / '+s.n+' 問';
+    if(s.m) sub+=' ・ × '+s.m;
+    if(s.due) sub+=' ・ 復習 '+s.due;
     return '<button class="mz" data-act="mplay" data-z="'+z.k+'">'+(s.runs?'':'<span class="mnew">NEW</span>')+
       '<div class="mzn">'+z.n+'</div><div class="mzd">'+esc(z.d)+'</div>'+
-      '<div class="ibar"><i style="width:'+(100*s.c/s.n)+'%"></i></div>'+
-      '<div class="ic">○ '+s.c+' / '+s.n+(s.m?' ・ × '+s.m+' 語もどってくる':'')+' ・ 約'+z.min+'分</div></button>';
+      '<div class="ibar"><i style="width:'+(s.n?100*s.fix/s.n:0)+'%"></i></div>'+
+      '<div class="ic">'+sub+'</div></button>';
   }).join('');
+  return '<section class="sec"><div class="sec-h"><h2>つみあげゾーン</h2>'+
+    '<p>5教科あわせて '+zoneTotal()+' 問。正解しても <b>7日後</b> にもう一度出てくるよ（3回つづけて正解で「定着」）</p></div>'+
+    '<div class="mzones">'+tiles+'</div></section>';
+}
+
+function mPanelHTML(){
+  var t=today(); if(t>MT.date) return '';
+  var left=diffDays(t,MT.date);
   return '<section class="panel mpanel"><div class="season-top"><div><span class="plate st"><span>特別ミッション</span></span>'+
     '<h1>'+(left<=0?'きょうはMテスト！':left===1?'あしたはMテスト！':'Mテストまで あと'+left+'日')+'</h1></div>'+
     '<div class="when">'+md(MT.date)+'('+wd(MT.date)+') 名進研Mテスト<br>'+(courseDone(4)?'<b style="font-size:15px">2時間コース完走！</b>':'まずは2時間コースを上から順に')+'</div></div>'+
-    coursePanelHTML()+'<div class="sec-h" style="margin:22px 0 10px"><h2 style="font-size:17px">自由練習（ゾーン）</h2><p>コースが終わって時間があれば</p></div><div class="mzones">'+tiles+'</div>'+
+    coursePanelHTML()+
     '<p class="pnote" style="margin-top:12px">出題：'+esc(MT.range)+'。週テストでまちがえた問題をもとに作っています。</p></section>';
 }
 
@@ -1953,10 +2050,11 @@ function Scratch(host,strokes){
 function needScratch(it){ return it.t==='n' || (it.zone||S.zone)==='math'; }
 
 /* M session */
-function startM(z){
-  var list=buildRun(z); if(!list.length){ toast('問題がありません'); return; }
+function startM(z,size,daily){
+  var list=buildRun(z,size); if(!list.length){ toast('問題がありません'); return; }
   mrec(z).runs=(mrec(z).runs||0)+1;
-  S={kind:'m',zone:z,pool:{id:'mtest'},mode:'m-'+z,list:list,i:0,ok:0,ng:0,missed:[],xp:0,drops:[]};
+  if(daily) list.forEach(function(x){ x.stage='つみあげ・'+zoneName(z); });
+  S={kind:'m',zone:z,pool:{id:'mtest'},mode:'m-'+z,list:list,i:0,ok:0,ng:0,missed:[],xp:0,drops:[],daily:daily};
   mSetPhase(); commit(); window.scrollTo(0,0); renderM();
 }
 function mSetPhase(){ var it=S.list[S.i]; S.scratch=[]; S.phase=it.t==='c'?'choose':it.t==='n'?'input':'write'; S.input=''; S.picked=null; S.overlay=false; S.drill=0; }
@@ -2017,13 +2115,15 @@ function mRefresh(){ var b=document.querySelector('[data-need]'); if(b) b.disabl
 function mScore(ok){
   var it=S.list[S.i], rec=mrec(it.zone||S.zone);
   if(!rec.lq) rec.lq={}; rec.lq[it.id]=[qText(it), fmtAns(it)];
-  if(ok){ S.ok++; gain(10); rec.st[it.id]='clear'; sfx('ok'); }
-  else { S.ng++; S.missed.push(it); if(rec.st[it.id]!=='clear') rec.st[it.id]='miss'; else rec.st[it.id]='miss'; sfx('ng'); }
+  if(!rec.sr) rec.sr={};
+  var sv=rec.sr[it.id]||{n:0};
+  if(ok){ S.ok++; gain(10); rec.st[it.id]='clear'; sv.n=(sv.n||0)+1; sv.d=addDays(today(),srI(sv.n)); rec.sr[it.id]=sv; sfx('ok'); }
+  else { S.ng++; S.missed.push(it); rec.st[it.id]='miss'; sv.n=0; sv.d=today(); rec.sr[it.id]=sv; sfx('ng'); }
   commit();
 }
 function mNext(){
   S.i++;
-  if(S.i>=S.list.length){ if(S.course){ crec().done[S.course]=true; gain(30); } logSession(); gain(20); S.phase='done'; commit(); renderM(); if(S.ng===0){ sfx('win'); confetti(); } else sfx('end'); window.scrollTo(0,0); return; }
+  if(S.i>=S.list.length){ if(S.course){ crec().done[S.course]=true; gain(30); } logSession(); markDaily(S.daily); gain(20); S.phase='done'; commit(); renderM(); if(S.ng===0){ sfx('win'); confetti(); } else sfx('end'); window.scrollTo(0,0); return; }
   mSetPhase(); renderM(); window.scrollTo(0,0);
 }
 function mResultHTML(){
@@ -2035,8 +2135,8 @@ function mResultHTML(){
     var q = it.t==='kw' ? it.r+'（'+it.c.replace('{}','＿')+'）' : it.q;
     return '<div><span>'+esc(q)+'</span><b>'+esc(fmtAns(it))+'</b></div>';
   }).join('')+'</div>':'';
-  return '<div class="result '+(perfect?'win':'')+'"><span class="plate st"><span>Mテスト対策・'+zoneName(S.zone)+'</span></span>'+
-    '<h1>'+(perfect?'パーフェクト！':'ゾーン終了！')+'</h1><p class="rsub">このゾーンの進み具合　○ '+s.c+' / '+s.n+'</p>'+
+  return '<div class="result '+(perfect?'win':'')+'"><span class="plate st"><span>'+(S.daily?'つみあげ':'Mテスト対策')+'・'+zoneName(S.zone)+'</span></span>'+
+    '<h1>'+(perfect?'パーフェクト！':S.daily?'きょうのぶん、おわり！':'ゾーン終了！')+'</h1><p class="rsub">定着 '+s.fix+' / '+s.n+' 問　・　きょう取り返した ×　'+S.ok+'</p>'+
     '<div class="rstats"><div><b>'+S.ok+'</b><span>○ 正解</span></div><div><b>'+S.ng+'</b><span>× まちがい</span></div><div><b>+'+S.xp+'</b><span>XP</span></div></div>'+miss+
     '<div class="mrow"><button class="btn storm" data-act="mplay" data-z="'+S.zone+'">もう1回出撃</button><button class="btn go big" data-act="lobby">ロビーへ</button></div></div>';
 }
@@ -2080,6 +2180,7 @@ document.addEventListener('click',function(e){
   }
   else if(a==='rplay'){ if(S && S.phase==='done') S=null; if(!S) startReview(b.dataset.z); }
   else if(a==='m5play'){ if(S && S.phase==='done') S=null; if(!S) startM5(b.dataset.z); }
+  else if(a==='dplay'){ if(S && S.phase==='done') S=null; if(!S) startDaily(b.dataset.z); }
   else if(a==='m5list'){ m5ListModal(); }
   else if(a==='rlist'){ reviewListModal(); }
   else if(a==='cplay'){ if(S && S.phase==='done') S=null; if(!S) startCourse(parseInt(b.dataset.n,10)); }
