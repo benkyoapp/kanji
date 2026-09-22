@@ -22,6 +22,7 @@
   --ok:#33d18a; --ok-edge:#179158; --ng:#ff6b5b; --ng-edge:#bf3a2c;
   --storm:#8b5cff; --storm-deep:#3a1d8a;
   --paper:#fffdf4; --grid:#e39a9a; --grid2:#f2c9c9; --ink:#1a1a1a;
+  --er:#ff9040;
   --legend:#ffb52e; --epic:#b86cff; --rare:#3ea3ff; --unc:#4fd66a; --com:#9fabbd;
   --display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
   --ui:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;
@@ -332,13 +333,17 @@ td input{width:70px;margin:0;padding:6px 8px}
 .tup.done{opacity:.5;border-color:rgba(255,255,255,.16)}
 .tup.done b::after{content:' ✓';color:var(--go)}
 .tno{margin:0;font-weight:800;opacity:.85}
+.btn.erz.on,.scr-b.erz.on{background:var(--er);color:#fff;border-color:var(--er)}
+.pad.erasing{outline:3px solid var(--er);outline-offset:2px}
+.scr.erasing{outline:3px solid var(--er);outline-offset:-1px}
+.pad.erasing canvas,.scr.erasing canvas{cursor:cell}
 .tdays{display:flex;gap:6px;margin-top:14px}
 .td{flex:1;text-align:center;border-radius:10px;padding:6px 2px;background:rgba(255,255,255,.05)}
 .td i{display:block;font-style:normal;font-size:11px;font-weight:800;opacity:.65}
 .td s{display:block;text-decoration:none;font-size:15px;font-weight:800;margin-top:2px}
 .td.rest s{font-size:11px;opacity:.7}
 .td.ok{background:rgba(58,214,143,.18)} .td.ok s{color:var(--go)}
-.td.now{outline:2px solid var(--sky)}
+.td.now{outline:2px solid var(--go)}
 .expl p,.expl-s{white-space:pre-line}
 .qtbl{border-collapse:collapse;margin:12px 0 2px;font-size:16px;font-weight:700;background:#fff;color:#222}
 .qtbl th,.qtbl td{border:1px solid #bbb;padding:4px 10px;text-align:center;min-width:44px;color:#222}
@@ -746,10 +751,49 @@ function saveWeek(){
 
 /* ---------- handwriting pad ---------- */
 var penSeen=false;
+/* ---------- 消しゴム（なぞった所だけ消す） ---------- */
+function lerpPt(a,b,t){
+  var o={x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t};
+  if(a.f!=null&&b.f!=null) o.f=a.f+(b.f-a.f)*t;
+  if(a.w!=null&&b.w!=null) o.w=a.w+(b.w-a.w)*t;
+  return o;
+}
+/* cx,cy＝消しゴムの中心（線と同じ座標系） r＝半径(px) sx,sy＝px への倍率 */
+function eraseStrokes(list,cx,cy,r,sx,sy){
+  var out=[], changed=false, step=Math.max(1,r*0.5), r2=r*r;
+  list.forEach(function(st){
+    var p=st.p, i, k;
+    var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+    for(i=0;i<p.length;i++){ if(p[i].x<x0)x0=p[i].x; if(p[i].x>x1)x1=p[i].x; if(p[i].y<y0)y0=p[i].y; if(p[i].y>y1)y1=p[i].y; }
+    if((cx-x1)*sx>r || (x0-cx)*sx>r || (cy-y1)*sy>r || (y0-cy)*sy>r){ out.push(st); return; }
+    var dp=[p[0]];
+    for(i=1;i<p.length;i++){
+      var a=p[i-1], b=p[i], d=Math.hypot((b.x-a.x)*sx,(b.y-a.y)*sy), n=Math.ceil(d/step);
+      for(k=1;k<n;k++) dp.push(lerpPt(a,b,k/n));
+      dp.push(b);
+    }
+    var seg=[], any=false;
+    for(i=0;i<dp.length;i++){
+      var dx=(dp[i].x-cx)*sx, dy=(dp[i].y-cy)*sy;
+      if(dx*dx+dy*dy<=r2){ any=true; if(seg.length>1) out.push({p:seg}); seg=[]; }
+      else seg.push(dp[i]);
+    }
+    if(any){ changed=true; if(seg.length>1) out.push({p:seg}); }
+    else out.push(st);
+  });
+  return changed?out:null;
+}
+function snapStrokes(list){ return list.map(function(st){ return {p:st.p.slice()}; }); }
+function setStrokes(list,next){ list.length=0; next.forEach(function(st){ list.push(st); }); }
+function isEraserPen(e){ return e.pointerType==='pen' && (e.buttons===32 || e.button===5); }
 function Pad(host,n){
   host.innerHTML='<div class="pad" style="--n:'+n+'"><div class="cells">'+Array.from({length:n},function(){ return '<div class="cell"><span class="g"></span></div>'; }).join('')+'</div><canvas aria-label="ここに書く"></canvas></div>';
   var pad=host.firstElementChild, cv=pad.querySelector('canvas'), ctx=cv.getContext('2d');
   var W=1,H=1,strokes=[],cur=null,pid=null, api={onchange:null};
+  var mode='pen', hist=[], er=false, ep=null;
+  function eR(){ return Math.max(10,H*0.11); }
+  function pushHist(){ hist.push(snapStrokes(strokes)); if(hist.length>40) hist.shift(); }
+  function eraseAt(q){ var n=eraseStrokes(strokes,q.x,q.y,eR(),W,H); if(n) setStrokes(strokes,n); }
   function fit(){
     var r=pad.getBoundingClientRect(), dpr=Math.min(3,window.devicePixelRatio||1);
     W=Math.max(1,r.width); H=Math.max(1,r.height);
@@ -768,27 +812,40 @@ function Pad(host,n){
     var L=p[p.length-1], M=mid(p[p.length-2],L);
     ctx.beginPath(); ctx.lineWidth=lw(L.f); ctx.moveTo(M.x*W,M.y*H); ctx.lineTo(L.x*W,L.y*H); ctx.stroke();
   }
-  function redraw(){ ctx.clearRect(0,0,W,H); strokes.forEach(drawStroke); if(cur) drawStroke(cur); }
+  function redraw(){
+    ctx.clearRect(0,0,W,H); strokes.forEach(drawStroke); if(cur) drawStroke(cur);
+    if(er&&ep){ ctx.save(); ctx.strokeStyle='rgba(235,104,52,.85)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(ep.x*W,ep.y*H,eR(),0,Math.PI*2); ctx.stroke(); ctx.restore(); }
+  }
   function pt(e){ var r=cv.getBoundingClientRect(); var f=e.pointerType==='pen'?(e.pressure||.5):.55; return {x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height,f:f}; }
+  function eline(a,b){ var d=Math.hypot((b.x-a.x)*W,(b.y-a.y)*H), n=Math.max(1,Math.ceil(d/(eR()*0.5)));
+    for(var i=1;i<=n;i++) eraseAt({x:a.x+(b.x-a.x)*i/n, y:a.y+(b.y-a.y)*i/n}); }
   cv.addEventListener('pointerdown',function(e){
     if(e.pointerType==='pen') penSeen=true;
     if(e.pointerType==='touch' && penSeen) return;   // palm rejection once a Pencil has been used
-    if(cur) return; e.preventDefault(); pid=e.pointerId;
+    if(cur||er) return; e.preventDefault(); pid=e.pointerId;
     try{ cv.setPointerCapture(pid); }catch(_){}
+    pushHist();
+    if(mode==='erase'||isEraserPen(e)){ er=true; ep=pt(e); eraseAt(ep); redraw(); return; }
     cur={p:[pt(e)]}; redraw();
   });
   cv.addEventListener('pointermove',function(e){
-    if(!cur || e.pointerId!==pid) return; e.preventDefault();
+    if(e.pointerId!==pid) return;
+    if(er){ e.preventDefault(); var q=pt(e); eline(ep,q); ep=q; redraw(); return; }
+    if(!cur) return; e.preventDefault();
     var evs=e.getCoalescedEvents?e.getCoalescedEvents():[]; if(!evs.length) evs=[e];
     evs.forEach(function(ev){ cur.p.push(pt(ev)); }); redraw();
   });
-  function end(e){ if(!cur || e.pointerId!==pid) return; strokes.push(cur); cur=null; pid=null; redraw(); if(api.onchange) api.onchange(); }
+  function end(e){
+    if(e.pointerId!==pid) return;
+    if(er){ er=false; ep=null; pid=null; redraw(); if(api.onchange) api.onchange(); return; }
+    if(!cur) return; strokes.push(cur); cur=null; pid=null; redraw(); if(api.onchange) api.onchange(); }
   cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
   cv.addEventListener('touchstart',function(e){ e.preventDefault(); },{passive:false});
   if(window.ResizeObserver) new ResizeObserver(fit).observe(pad); else setTimeout(fit,0);
   fit();
-  api.clear=function(){ strokes=[]; cur=null; redraw(); if(api.onchange) api.onchange(); };
-  api.undo=function(){ strokes.pop(); redraw(); if(api.onchange) api.onchange(); };
+  api.clear=function(){ pushHist(); setStrokes(strokes,[]); cur=null; redraw(); if(api.onchange) api.onchange(); };
+  api.undo=function(){ if(hist.length) setStrokes(strokes,hist.pop()); redraw(); if(api.onchange) api.onchange(); };
+  api.setMode=function(m){ mode=(m==='erase')?'erase':'pen'; pad.classList.toggle('erasing',mode==='erase'); };
   api.empty=function(){ return strokes.length===0; };
   api.guide=function(text,cls){ var ch=Array.from(text); pad.querySelectorAll('.g').forEach(function(g,i){ g.textContent=ch[i]||''; g.className='g'+(cls?' '+cls:''); }); };
   return api;
@@ -862,7 +919,7 @@ function setPhaseUI(){
   else if(ph==='judge' && S.overlay) S.pad.guide(o.w,'over');
   else S.pad.guide('','');
   $('#ansHost').innerHTML = ph==='judge' ? '<div class="ans"><p class="ans-l">正解</p><div class="pad-wrap">'+staticRow(o.w)+'</div></div>' : '';
-  var edit='<button class="btn ghost" data-act="undo">1つもどす</button><button class="btn ghost" data-act="clear">ぜんぶけす</button>';
+  var edit='<button class="btn ghost erz'+(S.erase?' on':'')+'" data-act="erase">'+(S.erase?'✏️ ペンにもどす':'けしゴム')+'</button><button class="btn ghost" data-act="undo">1つもどす</button><button class="btn ghost" data-act="clear">ぜんぶけす</button>';
   var c;
   if(ph==='write') c=edit+'<button class="btn go wide" data-act="check" data-need>こたえ合わせ</button>';
   else if(ph==='study') c=edit+'<button class="btn go wide" data-act="studynext" data-need>書けた！ つぎへ</button>';
@@ -901,7 +958,7 @@ function showDrop(list,cb){
 function next(){
   S.i++;
   if(S.i>=S.list.length){ finish(); return; }
-  S.phase=S.mode==='study'?'study':'write'; S.overlay=false; renderSession(); window.scrollTo(0,0);
+  S.phase=S.mode==='study'?'study':'write'; S.overlay=false; S.erase=false; renderSession(); window.scrollTo(0,0);
 }
 function finish(){
   var rec=S.pool.rec, win=false;
@@ -2027,24 +2084,42 @@ function reviewResultHTML(){
 
 /* ---------- 計算用紙 ---------- */
 function Scratch(host,strokes){
-  host.innerHTML='<div class="scr"><div class="scr-h"><span>計算用紙</span><button class="scr-b" data-scr="undo">1つもどす</button><button class="scr-b" data-scr="clear">ぜんぶけす</button></div><div class="scr-p"><canvas aria-label="計算用紙"></canvas></div></div>';
+  host.innerHTML='<div class="scr"><div class="scr-h"><span>計算用紙</span><button class="scr-b erz" data-scr="erase">けしゴム</button><button class="scr-b" data-scr="undo">1つもどす</button><button class="scr-b" data-scr="clear">ぜんぶけす</button></div><div class="scr-p"><canvas aria-label="計算用紙"></canvas></div></div>';
   var box=host.querySelector('.scr-p'), cv=box.querySelector('canvas'), ctx=cv.getContext('2d'), W=1,H=1,cur=null,pid=null;
+  var scr=host.querySelector('.scr'), eb=host.querySelector('[data-scr="erase"]');
+  var mode='pen', hist=[], er=false, ep=null, eR=16;
+  function pushHist(){ hist.push(snapStrokes(strokes)); if(hist.length>40) hist.shift(); }
+  function eraseAt(q){ var n=eraseStrokes(strokes,q.x,q.y,eR,1,1); if(n) setStrokes(strokes,n); }
+  function eline(a,b){ var d=Math.hypot(b.x-a.x,b.y-a.y), n=Math.max(1,Math.ceil(d/(eR*0.5)));
+    for(var i=1;i<=n;i++) eraseAt({x:a.x+(b.x-a.x)*i/n, y:a.y+(b.y-a.y)*i/n}); }
+  function setMode(m){ mode=(m==='erase')?'erase':'pen'; scr.classList.toggle('erasing',mode==='erase'); eb.classList.toggle('on',mode==='erase'); eb.textContent=mode==='erase'?'✏️ ペンにもどす':'けしゴム'; }
   function fit(){ var r=box.getBoundingClientRect(), d=Math.min(3,window.devicePixelRatio||1); W=Math.max(1,r.width); H=Math.max(1,r.height);
     cv.width=Math.round(W*d); cv.height=Math.round(H*d); ctx.setTransform(d,0,0,d,0,0); redraw(); }
   function line(s){ var p=s.p; ctx.strokeStyle='#1a1a1a'; ctx.fillStyle='#1a1a1a'; ctx.lineCap='round'; ctx.lineJoin='round';
     if(p.length===1){ ctx.beginPath(); ctx.arc(p[0].x,p[0].y,p[0].w/2,0,7); ctx.fill(); return; }
     for(var i=1;i<p.length;i++){ ctx.beginPath(); ctx.lineWidth=p[i].w; ctx.moveTo(p[i-1].x,p[i-1].y); ctx.lineTo(p[i].x,p[i].y); ctx.stroke(); } }
-  function redraw(){ ctx.clearRect(0,0,W,H); strokes.forEach(line); if(cur) line(cur); }
+  function redraw(){ ctx.clearRect(0,0,W,H); strokes.forEach(line); if(cur) line(cur);
+    if(er&&ep){ ctx.save(); ctx.strokeStyle='rgba(235,104,52,.85)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(ep.x,ep.y,eR,0,Math.PI*2); ctx.stroke(); ctx.restore(); } }
   function pt(e){ var r=cv.getBoundingClientRect(), f=e.pointerType==='pen'?(e.pressure||.5):.5; return {x:e.clientX-r.left,y:e.clientY-r.top,w:1.4+2.6*f}; }
-  cv.addEventListener('pointerdown',function(e){ if(e.pointerType==='pen') penSeen=true; if(e.pointerType==='touch'&&penSeen) return; if(cur) return;
-    e.preventDefault(); pid=e.pointerId; try{ cv.setPointerCapture(pid); }catch(_){} cur={p:[pt(e)]}; redraw(); });
-  cv.addEventListener('pointermove',function(e){ if(!cur||e.pointerId!==pid) return; e.preventDefault();
+  cv.addEventListener('pointerdown',function(e){ if(e.pointerType==='pen') penSeen=true; if(e.pointerType==='touch'&&penSeen) return; if(cur||er) return;
+    e.preventDefault(); pid=e.pointerId; try{ cv.setPointerCapture(pid); }catch(_){} pushHist();
+    if(mode==='erase'||isEraserPen(e)){ er=true; ep=pt(e); eraseAt(ep); redraw(); return; }
+    cur={p:[pt(e)]}; redraw(); });
+  cv.addEventListener('pointermove',function(e){ if(e.pointerId!==pid) return;
+    if(er){ e.preventDefault(); var q=pt(e); eline(ep,q); ep=q; redraw(); return; }
+    if(!cur) return; e.preventDefault();
     var ev=e.getCoalescedEvents?e.getCoalescedEvents():[]; if(!ev.length) ev=[e]; ev.forEach(function(x){ cur.p.push(pt(x)); }); redraw(); });
-  function end(e){ if(!cur||e.pointerId!==pid) return; strokes.push(cur); cur=null; pid=null; redraw(); }
+  function end(e){ if(e.pointerId!==pid) return;
+    if(er){ er=false; ep=null; pid=null; redraw(); return; }
+    if(!cur) return; strokes.push(cur); cur=null; pid=null; redraw(); }
   cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
   cv.addEventListener('touchstart',function(e){ e.preventDefault(); },{passive:false});
   host.querySelector('.scr-h').addEventListener('click',function(e){ var b=e.target.closest('[data-scr]'); if(!b) return;
-    if(b.dataset.scr==='undo') strokes.pop(); else strokes.length=0; redraw(); });
+    var k=b.dataset.scr;
+    if(k==='erase'){ setMode(mode==='erase'?'pen':'erase'); return; }
+    if(k==='undo'){ if(hist.length) setStrokes(strokes,hist.pop()); }
+    else { pushHist(); setStrokes(strokes,[]); }
+    redraw(); });
   if(window.ResizeObserver) new ResizeObserver(fit).observe(box); fit();
 }
 function needScratch(it){ return it.t==='n' || (it.zone||S.zone)==='math'; }
@@ -2057,7 +2132,7 @@ function startM(z,size,daily){
   S={kind:'m',zone:z,pool:{id:'mtest'},mode:'m-'+z,list:list,i:0,ok:0,ng:0,missed:[],xp:0,drops:[],daily:daily};
   mSetPhase(); commit(); window.scrollTo(0,0); renderM();
 }
-function mSetPhase(){ var it=S.list[S.i]; S.scratch=[]; S.phase=it.t==='c'?'choose':it.t==='n'?'input':'write'; S.input=''; S.picked=null; S.overlay=false; S.drill=0; }
+function mSetPhase(){ var it=S.list[S.i]; S.scratch=[]; S.erase=false; S.phase=it.t==='c'?'choose':it.t==='n'?'input':'write'; S.input=''; S.picked=null; S.overlay=false; S.drill=0; }
 function zoneName(z){ return MZ.find(function(x){ return x.k===z; }).n; }
 function renderM(){
   document.body.classList.add('in-session');
@@ -2105,7 +2180,7 @@ function mWriteUI(){
     judge:'正解と見くらべて、<b>自分で</b>丸つけ。',drill:'正解を見ながら、もう<b>1回</b>書こう。'}[ph];
   if(ph==='drill') S.pad.guide(it.a,'guide'); else if(ph==='judge'&&S.overlay) S.pad.guide(it.a,'over'); else S.pad.guide('','');
   $('#ansHost').innerHTML = ph==='judge' ? '<div class="ans"><p class="ans-l">正解'+(it.alt?'（'+esc(it.alt)+' でも○）':'')+'</p><div class="pad-wrap">'+staticRow(it.a)+'</div>'+(it.e?'<p class="expl-s">'+esc(it.e)+'</p>':'')+'</div>' : '';
-  var edit='<button class="btn ghost" data-act="undo">1つもどす</button><button class="btn ghost" data-act="clear">ぜんぶけす</button>';
+  var edit='<button class="btn ghost erz'+(S.erase?' on':'')+'" data-act="erase">'+(S.erase?'✏️ ペンにもどす':'けしゴム')+'</button><button class="btn ghost" data-act="undo">1つもどす</button><button class="btn ghost" data-act="clear">ぜんぶけす</button>';
   var c = ph==='write' ? edit+'<button class="btn go wide" data-act="mcheck" data-need>こたえ合わせ</button>'
         : ph==='drill' ? edit+'<button class="btn go wide" data-act="mdrill" data-need>書けた → つぎへ</button>'
         : '<button class="btn ghost" data-act="moverlay">'+(S.overlay?'かさねない':'正解をかさねる')+'</button><button class="btn ng wide" data-act="mng">× まちがえた</button><button class="btn ok wide" data-act="mok">○ 書けた！</button>';
@@ -2189,6 +2264,7 @@ document.addEventListener('click',function(e){
   else if(S.kind==='m'){
     var it=S.list[S.i];
     if(a==='undo') S.pad.undo();
+    else if(a==='erase'){ S.erase=!S.erase; S.pad.setMode(S.erase?'erase':'pen'); mWriteUI(); }
     else if(a==='clear') S.pad.clear();
     else if(a==='mcheck'){ S.phase='judge'; sfx('flip'); mWriteUI(); }
     else if(a==='moverlay'){ S.overlay=!S.overlay; mWriteUI(); }
@@ -2201,6 +2277,7 @@ document.addEventListener('click',function(e){
     else if(a==='mnext'){ mNext(); }
   }
   else if(a==='undo') S.pad.undo();
+  else if(a==='erase'){ S.erase=!S.erase; S.pad.setMode(S.erase?'erase':'pen'); setPhaseUI(); }
   else if(a==='clear') S.pad.clear();
   else if(a==='check'){ S.phase='judge'; sfx('flip'); setPhaseUI(); }
   else if(a==='overlay'){ S.overlay=!S.overlay; setPhaseUI(); }
