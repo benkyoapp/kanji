@@ -912,16 +912,18 @@ function setPhaseUI(){
     write:'赤いわくの読みを、<b>漢字で</b>書こう。送りがなもマスに書く。',
     study:'うすい字をなぞって書こう。<b>この日だけは見て書いてOK</b>。',
     judge:'下の正解と見くらべて、<b>自分で</b>丸つけ。トメ・ハネ・送りがなまで合っていたら○。',
+    cmp:'自分の字に正解を<b>重ねた</b>よ。トメ・ハネ・送りがな、ちがうところはどこ？',
     drill:'特訓！ 正解を見ながら <b>'+(S.drill+1)+' / 3</b> 回目。'
   }[ph];
   $('#hint').innerHTML=hint;
   if(ph==='study'||ph==='drill') S.pad.guide(o.w,'guide');
-  else if(ph==='judge' && S.overlay) S.pad.guide(o.w,'over');
+  else if((ph==='judge'||ph==='cmp') && S.overlay) S.pad.guide(o.w,'over');
   else S.pad.guide('','');
-  $('#ansHost').innerHTML = ph==='judge' ? '<div class="ans"><p class="ans-l">正解</p><div class="pad-wrap">'+staticRow(o.w)+'</div></div>' : '';
+  $('#ansHost').innerHTML = (ph==='judge'||ph==='cmp') ? '<div class="ans"><p class="ans-l">正解</p><div class="pad-wrap">'+staticRow(o.w)+'</div></div>' : '';
   var edit='<button class="btn ghost erz'+(S.erase?' on':'')+'" data-act="erase">'+(S.erase?'✏️ ペンにもどす':'けしゴム')+'</button><button class="btn ghost" data-act="undo">1つもどす</button><button class="btn ghost" data-act="clear">ぜんぶけす</button>';
   var c;
-  if(ph==='write') c=edit+'<button class="btn go wide" data-act="check" data-need>こたえ合わせ</button>';
+  if(ph==='cmp') c='<button class="btn go big wide" data-act="ngdrill">ちがいが分かった → 書き直す</button>';
+  else if(ph==='write') c=edit+'<button class="btn go wide" data-act="check" data-need>こたえ合わせ</button>';
   else if(ph==='study') c=edit+'<button class="btn go wide" data-act="studynext" data-need>書けた！ つぎへ</button>';
   else if(ph==='drill') c=edit+'<button class="btn go wide" data-act="drillnext" data-need><span class="drillc">書けた '+(S.drill+1)+'/3</span></button>';
   else c='<button class="btn ghost" data-act="overlay">'+(S.overlay?'かさねない':'正解をかさねる')+'</button>'+
@@ -946,7 +948,7 @@ function judge(ok){
     if(defeated.length){ S.drops=S.drops.concat(defeated); sfx('drop'); showDrop(defeated,next); } else { sfx('ok'); next(); }
   } else {
     S.ng++; S.missed.push(w); if(st.s!=='clear') st.s='miss'; sfx('ng'); commit();
-    if(S.mode==='battle'){ S.phase='drill'; S.drill=0; S.pad.clear(); setPhaseUI(); } else next();
+    if(S.mode==='battle'){ S.overlay=true; S.phase='cmp'; setPhaseUI(); } else next();
   }
 }
 function showDrop(list,cb){
@@ -1480,7 +1482,7 @@ var M5SRC='9/20 Mテスト（第5回）で×';
 function M5C(zone,id,no,q,a,wrong,e){ return {zone:zone,id:'m5-'+id,t:'c',src:M5SRC+' ・ '+no,q:q,a:a,ch:[a].concat(wrong),e:e}; }
 function M5W(zone,id,no,q,a,e,alt){ return {zone:zone,id:'m5-'+id,t:'w',src:M5SRC+' ・ '+no,q:q,a:a,e:e||'',alt:alt||''}; }
 function M5G(zone,id,no,f){ return {zone:zone,id:'m5-'+id,src:M5SRC+' ・ '+no,f:f}; }
-function M5K(id,no,w,r,c){ return {zone:'kan',id:'m5-'+id,t:'kw',w:w,r:r,c:c,a:w,rate:50,src:M5SRC+' ・ '+no+'（白紙だった漢字）'}; }
+function M5K(id,no,w,r,c,note){ return {zone:'kan',id:'m5-'+id,t:'kw',w:w,r:r,c:c,a:w,rate:50,src:M5SRC+' ・ '+no+'（'+(note||'白紙だった漢字')+'）'}; }
 function gcd(a,b){ while(b){ var t=a%b; a=b; b=t; } return a; }
 function doy(m,d){ var c=[0,31,59,90,120,151,181,212,243,273,304,334]; return c[m-1]+d; }
 
@@ -1627,6 +1629,50 @@ M5C('sci','taiseki2','大問6(2) 水が氷になると','水が氷になった�
  ['体積も重さも大きくなる','体積は小さくなり、重さは変わらない','体積は変わらず、重さが小さくなる'],
  '水→氷 では体積が約1.1倍にふえる（だからペットボトルがふくらむ、氷が水にうかぶ）。\nすがたが変わるだけなので、重さは変わらない。'),
 
+/* ---------- 理科・電磁石の追加（大問1が 2/18 だったため） ---------- */
+M5C('sci','migite','大問1(1) 導線のまわりの磁界','まっすぐな導線に電流を流したとき、まわりにできる磁界の向きの調べ方は？','右手の親指を電流の向きに合わせ、のこりの4本の指がにぎる向き',
+ ['右手の親指を電流の向きに合わせ、親指の向き','左手の親指を電流の向きに合わせ、にぎる向き','電流と同じ向き'],
+ '電流のまわりには、同心円状の磁界ができる。\n右手の親指＝電流の向き、にぎる4本の指＝磁界の向き（右ねじの法則）。\n電流を逆にすれば、磁界も逆向きになる。'),
+
+M5C('sci','enkei','大問1(1) 円形の導線','導線を輪（円形）にして電流を流すと、輪の中心の磁界はどうなる？','輪の面をつらぬく向きに、まっすぐな磁界ができる',
+ ['輪にそって、ぐるりと回る磁界ができる','中心には磁界ができない','輪の外側にだけ磁界ができる'],
+ 'まっすぐな導線のまわりの磁界（同心円）を、輪にそって集めたものと考える。\n輪のどの部分の磁界も、中心では同じ向きにそろうので、面をつらぬく強い磁界になる。\nこの輪をたくさん重ねたものがコイル。'),
+
+M5C('sci','coilN','大問1 コイルの極','コイルに電流を流したとき、どちらがN極かを知るには？','電流の向きに右手の4本の指をにぎると、立てた親指の向きがN極',
+ ['電流の向きに右手の4本の指をにぎると、親指の向きがS極','左手でにぎって、親指の向きがN極','かん電池の＋極に近いほうがN極'],
+ '右手でコイルをにぎる。4本の指＝電流の向き、立てた親指＝N極。\n※ 導線1本のときは「親指＝電流／にぎる指＝磁界」、コイルのときは「にぎる指＝電流／親指＝N極」。この2つは逆になるので注意。'),
+
+M5C('sci','gyaku2','大問1(2) 電流の向き','電磁石に流す電流の向きだけを逆にすると、どうなる？','N極とS極が入れかわる',
+ ['磁力が強くなる','磁力が弱くなる','何も変わらない'],
+ '電磁石の向き（極）は、電流の向きで決まる。\nかん電池の向きを逆につなぐ → N極とS極が入れかわる。\n磁力の強さは変わらない（強さを変えるのは電流の大きさ・巻き数・鉄心）。'),
+
+M5C('sci','shin2','大問1 鉄心','コイルの中に鉄心を入れると磁力が強くなるのはなぜ？','鉄心そのものが磁石になって、コイルの磁力に加わるから',
+ ['鉄心が電流をよく通すから','鉄心が電流の向きを変えるから','鉄心がコイルを冷やすから'],
+ 'コイルの磁界の中に入れた鉄は、それ自体が磁石になる（磁化）。\nコイルの磁力＋鉄心の磁力で、ぐんと強くなる。\n電流を切ると鉄心の磁力も消えるのが、永久磁石とのちがい。'),
+
+M5C('sci','houi','大問1 方位磁針','まっすぐな導線の「上」と「下」に方位磁針を置くと、針のふれ方は？','上と下で、N極のふれる向きが逆になる',
+ ['上と下で、同じ向きにふれる','下に置いた方位磁針はふれない','どちらもふれない'],
+ '導線のまわりの磁界は同心円。導線の上と下では、円をなぞる向きが逆になる。\nだから方位磁針のふれる向きも逆。\n※ 電流が大きいほど、導線に近いほど、大きくふれる。'),
+
+M5C('sci','tsunagi','大問1(7) 電流計のつなぎ方','電流計は回路にどのようにつなぐ？','はかりたいところに、直列につなぐ',
+ ['はかりたいところに、並列につなぐ','かん電池だけに直接つなぐ','どこにつないでもよい'],
+ '電流計＝電流の通り道に割りこませる → 直列。\n（電圧計は並列。ここが入れかわりやすい。）\n※ かん電池に直接つなぐと、大きすぎる電流が流れて電流計がこわれる。'),
+
+M5C('sci','tanshi','大問1(7) −端子の選び方','電流の大きさが予想できないとき、最初につなぐ−端子はどれ？','5A',
+ ['500mA','50mA','どれでもよい'],
+ 'いちばん大きい 5A からつなぐ。\nはりのふれが小さすぎたら 500mA → 50mA と、小さい端子に変えていく。\n※ 小さい端子からつなぐと、はりが振り切れて電流計がこわれる。'),
+
+M5C('sci','motor','大問1 モーター','モーターが同じ向きに回り続けるのはなぜ？','整流子によって、半回転ごとにコイルに流れる電流の向きが入れかわるから',
+ ['磁石が半回転ごとに入れかわるから','コイルが半回転ごとに軽くなるから','電流が半回転ごとに止まるから'],
+ 'コイルは半回転すると、そのままでは逆向きの力を受けて止まってしまう。\n整流子（せいりゅうし）とブラシが、半回転ごとに電流の向きを切りかえるので、いつも同じ向きの力がはたらき、回り続ける。'),
+
+M5W('sci','denjikijutsu','大問1(6) 記述','「電磁石の極が入れかわったのはなぜですか」と聞かれました。文の終わりはどう書きますか。（ひらがなでよい）','から',
+ '理由をきかれたら「〜から。」「〜ため。」で結ぶ。\n模範解答の形：「コイルに流れる電流の向きが逆になったから。」\n※ 理科の記述も、聞かれ方と終わり方をそろえるのは国語と同じ。'),
+
+M5C('sci','taiseki3','大問6(3) 空気と水を温める','空気と水を同じように温めると、体積はどうなる？','どちらも大きくなり、空気のほうが変化が大きい',
+ ['どちらも小さくなる','空気だけ大きくなる','水のほうが変化が大きい'],
+ '温度による体積の変化は 空気 ＞ 水 ＞ 金属。\nあたためると大きく、冷やすと小さくなる。\n※ 「冷やす」の問題とセットで、向きをまちがえないように。'),
+
 /* ---------- 社会 ---------- */
 M5C('soc','zousan','大問1(2) 造山帯','環太平洋造山帯にふくまれる山脈は？','ロッキー山脈・アンデス山脈',
  ['アルプス山脈・ヒマラヤ山脈','ウラル山脈','スカンディナビア山脈'],
@@ -1654,6 +1700,13 @@ M5C('soc','zuhou','大問1(6) 図法','面積が正しく表される図法は�
  ['メルカトル図法','正距方位図法','メルカトル図法とモルワイデ図法の両方'],
  'メルカトル図法 … 角度が正しい。航海図。高緯度ほど面積が大きく見える。\nモルワイデ図法 … 面積が正しい。分布図。\n正距方位図法 … 中心からの距離と方位が正しい。航空図。'),
 
+M5W('soc','takeshima','大問2(2) 竹島','島根県に属する日本固有の領土で、現在は韓国が占拠しており、日本が返還を求めている島を何といいますか。','竹島',
+ '日本の領土をめぐる問題\n・竹島（島根県）… 韓国が占拠\n・北方領土（北海道）… ロシアが占拠\n・尖閣諸島（沖縄県）… 中国が領有を主張。日本が有効に支配している'),
+M5W('soc','himiko','大問5(5) 卑弥呼','邪馬台国を治め、中国の魏に使いを送って「親魏倭王」の称号と金印を受けた女王はだれですか。','卑弥呼',
+ '『魏志』倭人伝に書かれている。\n・30ほどの国を従えた\n・まじない（呪術）によって政治を行った\n・239年に魏へ使いを送り、「親魏倭王」の称号と銅鏡100枚を受けた'),
+M5C('soc','usjp','大問4(1) 日本とアメリカの貿易','日本とアメリカの貿易について正しいものは？','日本は機械類や自動車を輸出し、とうもろこし・大豆・肉類を輸入している',
+ ['日本は農産物を輸出し、自動車を輸入している','日本は原油をアメリカから多く輸入している','日本とアメリカの間では貿易は行われていない'],
+ '日本 → アメリカ … 機械類、自動車（工業製品）\nアメリカ → 日本 … とうもろこし、大豆、肉類（農産物）と航空機\n※ 原油はサウジアラビア・UAE から。'),
 M5C('soc','china','大問2(1) 中国','中国の説明として正しいものは？','人口が世界有数で、沿岸部に経済特区をつくり「世界の工場」とよばれる',
  ['国土のほとんどが熱帯で、稲作しか行われていない','人口を増やすために一人っ子政策を行った','日本より国土面積が小さい'],
  '中国は 人口世界最大級・面積は日本の約25倍。\n沿岸部（シェンチェンなど）に経済特区をつくって外国の企業を集め、工業が発展した。\n一人っ子政策は「人口をおさえる」政策（現在は廃止）。'),
@@ -1717,6 +1770,8 @@ M5K('kan-ayamari','大問1⑥','誤り','あやまり','計算の{}に気づく'
 M5K('kan-osameru','大問1⑦','収める','おさめる','大きな成功を{}'),
 M5K('kan-wake','大問1⑧','訳','わけ','おくれた{}を話す'),
 M5K('kan-rinji','大問1⑨','臨時','りんじ','{}のバスが出る'),
+M5K('kan-sute','大問1③','捨て','すて','ごみを{}る','書いたが×・送りがなまで'),
+M5K('kan-gyunyu','大問1⑩','牛乳','ぎゅうにゅう','{}を飲む','書いたが×・クラスの85％が正解'),
 
 /* ---------- 国語（語句・記述） ---------- */
 M5W('jp','risei','大問2(1) 抽象語','感情に流されず、すじ道を立てて考える心のはたらきを何といいますか。','理性',
@@ -1788,7 +1843,7 @@ function m5PanelHTML(){
   }).join('');
   return '<section class="panel rpanel m5p"><div class="season-top" style="margin-bottom:10px"><div><span class="plate rv"><span>9/20 Mテストの直し</span></span>'+
     '<h1 style="font-size:26px">'+(done?'ぜんぶ取り返した！':'まちがえた <b style="color:var(--ng)">'+s.m+'</b> 問がのこっています')+'</h1></div>'+
-    '<div class="when">第5回Mテスト（195点／自己最高）<br>'+(done?'いつでも復習できるよ':'正解すると、その問題は消えるよ')+'</div></div>'+
+    '<div class="when">第5回Mテスト（自己最高を更新！）<br>'+(done?'いつでも復習できるよ':'正解すると、その問題は消えるよ')+'</div></div>'+
     '<div class="ibar" style="margin:4px 0 12px"><i style="width:'+(100*s.c/s.n)+'%"></i></div>'+
     '<div class="rvrow">'+per+'<button class="rvb all" data-act="m5play" data-z="*"><b>'+(done?s.n:s.m)+'</b><span>ぜんぶ</span></button></div>'+
     '<p style="margin:12px 0 0"><button class="btn ghost" data-act="m5list">まちがえた問題と答えを一覧で見る</button></p></section>';
@@ -2177,12 +2232,13 @@ function fmtAns(it){ return it.t==='n' ? fmtN(it.a)+(it.u||'') : it.a; }
 function mWriteUI(){
   var it=S.list[S.i], ph=S.phase;
   $('#hint').innerHTML={write:it.t==='kw'?'赤いわくの読みを、<b>漢字で</b>書こう。':'答えを<b>書いて</b>から、こたえ合わせ。1マスに1字。',
-    judge:'正解と見くらべて、<b>自分で</b>丸つけ。',drill:'正解を見ながら、もう<b>1回</b>書こう。'}[ph];
-  if(ph==='drill') S.pad.guide(it.a,'guide'); else if(ph==='judge'&&S.overlay) S.pad.guide(it.a,'over'); else S.pad.guide('','');
-  $('#ansHost').innerHTML = ph==='judge' ? '<div class="ans"><p class="ans-l">正解'+(it.alt?'（'+esc(it.alt)+' でも○）':'')+'</p><div class="pad-wrap">'+staticRow(it.a)+'</div>'+(it.e?'<p class="expl-s">'+esc(it.e)+'</p>':'')+'</div>' : '';
+    judge:'正解と見くらべて、<b>自分で</b>丸つけ。',cmp:'自分の字に正解を<b>重ねた</b>よ。ちがうところはどこ？',drill:'正解を見ながら、もう<b>1回</b>書こう。'}[ph];
+  if(ph==='drill') S.pad.guide(it.a,'guide'); else if((ph==='judge'||ph==='cmp')&&S.overlay) S.pad.guide(it.a,'over'); else S.pad.guide('','');
+  $('#ansHost').innerHTML = (ph==='judge'||ph==='cmp') ? '<div class="ans"><p class="ans-l">正解'+(it.alt?'（'+esc(it.alt)+' でも○）':'')+'</p><div class="pad-wrap">'+staticRow(it.a)+'</div>'+(it.e?'<p class="expl-s">'+esc(it.e)+'</p>':'')+'</div>' : '';
   var edit='<button class="btn ghost erz'+(S.erase?' on':'')+'" data-act="erase">'+(S.erase?'✏️ ペンにもどす':'けしゴム')+'</button><button class="btn ghost" data-act="undo">1つもどす</button><button class="btn ghost" data-act="clear">ぜんぶけす</button>';
   var c = ph==='write' ? edit+'<button class="btn go wide" data-act="mcheck" data-need>こたえ合わせ</button>'
         : ph==='drill' ? edit+'<button class="btn go wide" data-act="mdrill" data-need>書けた → つぎへ</button>'
+        : ph==='cmp' ? '<button class="btn go big wide" data-act="mng2">ちがいが分かった → 書き直す</button>'
         : '<button class="btn ghost" data-act="moverlay">'+(S.overlay?'かさねない':'正解をかさねる')+'</button><button class="btn ng wide" data-act="mng">× まちがえた</button><button class="btn ok wide" data-act="mok">○ 書けた！</button>';
   $('#ctrl').innerHTML=c; mRefresh();
 }
@@ -2269,7 +2325,8 @@ document.addEventListener('click',function(e){
     else if(a==='mcheck'){ S.phase='judge'; sfx('flip'); mWriteUI(); }
     else if(a==='moverlay'){ S.overlay=!S.overlay; mWriteUI(); }
     else if(a==='mok'){ mScore(true); mNext(); }
-    else if(a==='mng'){ mScore(false); S.phase='drill'; S.pad.clear(); mWriteUI(); }
+    else if(a==='mng'){ mScore(false); S.overlay=true; S.phase='cmp'; mWriteUI(); }
+    else if(a==='mng2'){ S.phase='drill'; S.pad.clear(); mWriteUI(); }
     else if(a==='mdrill'){ mNext(); }
     else if(a==='mpick'){ var i=parseInt(b.dataset.i,10); S.picked=i; S.lastOk=it.ch[i]===it.a; mScore(S.lastOk); S.phase='shown'; renderM(); }
     else if(a==='key'){ var k=b.dataset.k; if(k==='⌫') S.input=S.input.slice(0,-1); else if(k==='.'){ if(S.input.indexOf('.')<0) S.input=(S.input||'0')+'.'; } else if(S.input.length<9) S.input=(S.input==='0'?'':S.input)+k; renderM(); }
@@ -2283,6 +2340,7 @@ document.addEventListener('click',function(e){
   else if(a==='overlay'){ S.overlay=!S.overlay; setPhaseUI(); }
   else if(a==='ok') judge(true);
   else if(a==='ng') judge(false);
+  else if(a==='ngdrill'){ S.phase='drill'; S.drill=0; S.pad.clear(); setPhaseUI(); }
   else if(a==='studynext'){ next(); }
   else if(a==='drillnext'){ S.drill++; if(S.drill>=3){ gain(5); commit(); next(); } else { S.pad.clear(); setPhaseUI(); } }
 });
